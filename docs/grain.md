@@ -50,7 +50,8 @@ one-row-per-mark rules.
 Stacking charts are bars, stacked bars, areas and streamgraphs whenever more than one color shares a bar or
 point, and pie and donut charts always. Bars colored by the same column as their x axis do not
 stack. A metric whose additivity is unknown is not stacked, since its sum may be wrong. Setting
-`chartProperties.stackMode` to `"layered"` turns stacking off.
+`chartProperties.stackMode` to `"layered"` turns stacking off, except for streamgraphs, which
+always stack.
 
 A dimension that takes one value per mark, such as a region beside a country, is fine to leave
 off the chart. Tooltip and text channels label a mark without drawing a new one, so a dimension

@@ -369,21 +369,24 @@ def _dense_stacked_area(
         total *= len(values)
     if total == len(present):
         return rows, chart_properties, []
-    if chart_type in _ALWAYS_STACKED_CHART_TYPES:
-        not_layerable = [
-            f"a {chart_type} fills missing points by interpolation and cannot be layered, and "
+
+    def layered(reason: str) -> tuple[list[dict[str, object]], dict[str, object], list[str]]:
+        if chart_type in _ALWAYS_STACKED_CHART_TYPES:
+            return (
+                rows,
+                chart_properties,
+                [
+                    f"a {chart_type} fills missing points by interpolation and cannot be "
+                    f"layered, and {reason}"
+                ],
+            )
+        return rows, {**chart_properties, "stackMode": "layered"}, []
+
+    if any(metrics[column].additivity != "additive" for column in stacked):
+        return layered(
             f"{' and '.join(stacked)} has gaps that are not zeros; use an Area Chart or a "
             "Line Chart"
-        ]
-        layered: tuple[list[dict[str, object]], dict[str, object], list[str]] = (
-            rows,
-            chart_properties,
-            not_layerable,
         )
-    else:
-        layered = (rows, {**chart_properties, "stackMode": "layered"}, [])
-    if any(metrics[column].additivity != "additive" for column in stacked):
-        return layered
     if total > cap:
         return (
             rows,
@@ -401,7 +404,10 @@ def _dense_stacked_area(
         source = _source(rows, name, keys)
         if source is None:
             # A dimension that no single key decides has no known value at an added point.
-            return layered
+            return layered(
+                f"{name} has no known value at the missing points; filter it to one value or "
+                "leave it out of the query"
+            )
         sources[name] = source
     filled = list(rows)
     for combo in _product(distinct):

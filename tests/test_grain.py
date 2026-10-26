@@ -439,3 +439,23 @@ class TestStreamgraph:
         )
         check = check_grain(monthly_by_region("margin"), request, {"margin": RATIO})
         assert check.problems[0].startswith("a Streamgraph sums margin across region")
+
+    def test_unfillable_dimension_is_named(self) -> None:
+        # promo varies by month and region together, so no single key gives its value.
+        rows = [{**row, "promo": f"{row['month']}-{row['region']}"} for row in self.gappy()]
+        check = check_grain(rows, self.request(), {"revenue": ADDITIVE})
+        assert check.problems == (
+            "a Streamgraph fills missing points by interpolation and cannot be layered, and "
+            "promo has no known value at the missing points; filter it to one value or leave "
+            "it out of the query",
+        )
+
+    def test_area_chart_with_unfillable_dimension_is_layered(self) -> None:
+        rows = [{**row, "promo": f"{row['month']}-{row['region']}"} for row in self.gappy()]
+        request = ChartRequest(
+            chart_type="Area Chart", encodings={"x": "month", "y": "revenue", "color": "region"}
+        )
+        check = check_grain(rows, request, {"revenue": ADDITIVE})
+        assert check.ok
+        assert check.chart_properties == {"stackMode": "layered"}
+        assert check.rows == rows
