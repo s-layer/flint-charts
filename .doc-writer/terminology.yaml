@@ -1,0 +1,36 @@
+version: 1
+
+source_terms:
+  - canonical: "SLayerChart"
+    variants: ["SlayerChart", "S-Layer chart component"]
+    source: "ts/src/react.tsx"
+  - canonical: "show_chart"
+    variants: ["showChart tool", "show chart tool"]
+    source: "src/s_layer_flint_charts/pydantic_ai.py"
+  - canonical: "chart_toolset"
+    variants: []
+    source: "src/s_layer_flint_charts/pydantic_ai.py"
+
+proper_nouns:
+  - canonical: "Flint"
+    variants: ["flint", "FLINT"]
+  - canonical: "CopilotKit"
+    variants: ["Copilotkit", "copilotKit"]
+  - canonical: "assistant-ui"
+    variants: ["Assistant UI", "assistant UI", "AssistantUI"]
+  - canonical: "Pydantic AI"
+    variants: ["PydanticAI", "pydantic-ai"]
+  - canonical: "Vega-Lite"
+    variants: ["vega-lite", "VegaLite"]
+
+project_terms:
+  - canonical: "rows route"
+    variants: ["rows endpoint", "data endpoint"]
+  - canonical: "receipt"
+    variants: ["tool receipt"]
+  - canonical: "Flint input"
+    variants: ["chart spec", "Flint spec"]
+  - canonical: "grain guard"
+    variants: ["grain check"]
+
+overrides: {}

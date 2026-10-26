@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Draw `show_chart` calls in an assistant-ui chat.
  *

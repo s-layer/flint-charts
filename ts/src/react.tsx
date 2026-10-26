@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * The React chart for `show_chart`'s answers, and the tool-call view the chat adapters share.
  */

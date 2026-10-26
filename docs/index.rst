@@ -43,6 +43,7 @@ tools, and :doc:`chat-ui` to draw those charts in a chat.
 
    agents
    chat-ui
+   TypeScript API <typescript>
    mapping
    grain
    API Reference <autoapi/index>

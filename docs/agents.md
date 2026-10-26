@@ -109,8 +109,8 @@ points.
 ## Drawing the chart
 
 Flint does not fetch `data.url` itself, so the browser fetches the rows and puts them in
-`data.values` before Flint draws the chart. `@s-layer/flint-charts` does this for CopilotKit,
-assistant-ui and plain React; see [Charts in a chat UI](chat-ui.md).
+`data.values` before Flint draws the chart. The npm package `@s-layer/flint-charts` does this
+for CopilotKit, assistant-ui and plain React; see [Charts in a chat UI](chat-ui.md).
 
 ## Checking charts with Flint
 
@@ -126,9 +126,11 @@ grain guard alone.
 
 ## Limits
 
-- A session holds its newest 20 results and 50 charts, and is forgotten an hour after its last
-  use. A chart whose rows have expired can't be redrawn until the query runs again. Set these
-  with `ChartStore(ttl=…, max_results=…, max_charts=…)`.
+- A session holds its newest 20 results and 50 charts, and is forgotten an hour after the
+  agent's tools last used it. The rows route doesn't count as a use, so a chart redrawn in an
+  open tab still expires. Past 1,000 sessions, the least recently used is forgotten early. A
+  chart whose rows have expired can't be redrawn until the query runs again. Set these with
+  `ChartStore(ttl=…, max_sessions=…, max_results=…, max_charts=…)`.
 - The store is in memory, per process. Run one process, or route each conversation to the same
   one.
 

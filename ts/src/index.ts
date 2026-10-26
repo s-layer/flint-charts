@@ -12,7 +12,7 @@ import { validateChart } from "flint-chart/validate";
 
 export type { ChartAssemblyInput, ChartWarning } from "flint-chart";
 
-export const VERSION = "0.0.0";
+export const VERSION = "0.1.0";
 
 /** The tool the Python toolset registers. */
 export const SHOW_CHART_TOOL = "show_chart";
