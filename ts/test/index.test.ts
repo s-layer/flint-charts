@@ -10,3 +10,11 @@ describe("package", () => {
     expect(VERSION).toBe(pkg.version);
   });
 });
+
+describe("client entry points", () => {
+  // Next.js renders a module's components on the client only when the module says so.
+  it.each(["react.tsx", "copilotkit.tsx", "assistant-ui.tsx"])("%s is a client module", (file) => {
+    const source = readFileSync(new URL(`../src/${file}`, import.meta.url), "utf8");
+    expect(source.startsWith('"use client";')).toBe(true);
+  });
+});
