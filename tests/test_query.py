@@ -10,7 +10,7 @@ from semolina.spec import build_query
 
 from s_layer_flint_charts import ChartSession, Metric, result_columns, run_query
 from tests._arrow import table
-from tests._views import Sales, monthly
+from tests._views import MONTHS, Sales, monthly
 
 if TYPE_CHECKING:
     import pyarrow as pa
@@ -131,3 +131,13 @@ def test_two_columns_for_one_field_are_refused() -> None:
     query = build_query(Sales, {"metrics": ["revenue"]})
     with pytest.raises(ValueError, match="more than one column"):
         result_columns(query, table({"revenue": [1.0], "REVENUE": [2.0]}))
+
+
+async def test_a_date_column_gets_its_span() -> None:
+    async def daily(query: Query) -> pa.Table:
+        return table({"ordered_at": MONTHS, "revenue": [1.0, 2.0, 3.0]})
+
+    spec = {"metrics": ["revenue"], "dimensions": ["ordered_at"]}
+    summary: Any = await run_query(ChartSession(), Sales, spec, fetch=daily)
+    ordered_at = summary["columns"][0]
+    assert (ordered_at["min"], ordered_at["max"]) == ("2024-01-01", "2024-03-01")

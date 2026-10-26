@@ -176,7 +176,7 @@ def _base_name(field: Field[Any]) -> str:
 
 
 _ISO_FORMS = frozenset({"year_quarter", "year_month", "date", "datetime"})
-"""Value forms written as ISO strings, which sort as the times they name."""
+"""Value forms of time columns, whose values sort as the times they name."""
 
 
 def _range(values: list[object], value_form: str) -> tuple[object, object] | None:
@@ -186,8 +186,14 @@ def _range(values: list[object], value_form: str) -> tuple[object, object] | Non
     ]
     if numbers and len(numbers) == len(values):
         return min(numbers), max(numbers)
-    times = [value for value in values if isinstance(value, str)]
-    if value_form in _ISO_FORMS and times and len(times) == len(values):
+    if value_form not in _ISO_FORMS or not values:
+        return None
+    # Periods are already strings; dates and timestamps stay objects until the summary is JSON.
+    texts = [value for value in values if isinstance(value, str)]
+    if len(texts) == len(values):
+        return min(texts), max(texts)
+    times = [value for value in values if isinstance(value, datetime.date)]
+    if len(times) == len(values):
         return min(times), max(times)
     return None
 
