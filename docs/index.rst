@@ -41,5 +41,6 @@ See :doc:`mapping` for the full table.
    :hidden:
 
    mapping
+   grain
    API Reference <autoapi/index>
    Release notes <changelog>

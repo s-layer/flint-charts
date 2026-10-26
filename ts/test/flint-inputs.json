@@ -1,0 +1,489 @@
+{
+  "growth_bars": {
+    "input": {
+      "chart_spec": {
+        "chartProperties": {},
+        "chartType": "Bar Chart",
+        "encodings": {
+          "color": {
+            "field": "region"
+          },
+          "x": {
+            "field": "region"
+          },
+          "y": {
+            "field": "growth"
+          }
+        }
+      },
+      "data": {
+        "values": [
+          {
+            "growth": -0.12,
+            "region": "EU"
+          },
+          {
+            "growth": 0.35,
+            "region": "US"
+          },
+          {
+            "growth": 1.8,
+            "region": "APAC"
+          }
+        ]
+      },
+      "field_display_names": {
+        "region": "Region"
+      },
+      "semantic_types": {
+        "growth": {
+          "intrinsicDomain": [
+            -0.12,
+            1.8
+          ],
+          "semanticType": "PercentageChange"
+        },
+        "region": "Region"
+      }
+    },
+    "problems": []
+  },
+  "margin_lines_by_quarter": {
+    "input": {
+      "chart_spec": {
+        "chartProperties": {},
+        "chartType": "Line Chart",
+        "encodings": {
+          "color": {
+            "field": "region"
+          },
+          "x": {
+            "field": "quarter"
+          },
+          "y": {
+            "field": "margin"
+          }
+        }
+      },
+      "data": {
+        "values": [
+          {
+            "margin": 0.12,
+            "quarter": "2024-Q1",
+            "region": "EU"
+          },
+          {
+            "margin": 0.18,
+            "quarter": "2024-Q1",
+            "region": "US"
+          },
+          {
+            "margin": 0.115,
+            "quarter": "2024-Q2",
+            "region": "EU"
+          },
+          {
+            "margin": 0.17,
+            "quarter": "2024-Q2",
+            "region": "US"
+          },
+          {
+            "margin": 0.13,
+            "quarter": "2024-Q3",
+            "region": "EU"
+          },
+          {
+            "margin": 0.195,
+            "quarter": "2024-Q3",
+            "region": "US"
+          }
+        ]
+      },
+      "field_display_names": {
+        "region": "Region"
+      },
+      "semantic_types": {
+        "margin": {
+          "intrinsicDomain": [
+            0,
+            1
+          ],
+          "semanticType": "Percentage"
+        },
+        "quarter": "YearQuarter",
+        "region": "Region"
+      }
+    },
+    "problems": []
+  },
+  "orders_heatmap": {
+    "input": {
+      "chart_spec": {
+        "chartProperties": {},
+        "chartType": "Heatmap",
+        "encodings": {
+          "color": {
+            "field": "orders"
+          },
+          "x": {
+            "field": "month"
+          },
+          "y": {
+            "field": "region"
+          }
+        }
+      },
+      "data": {
+        "values": [
+          {
+            "channel": "web",
+            "month": "2024-01",
+            "orders": 0,
+            "region": "EU"
+          },
+          {
+            "channel": "web",
+            "month": "2024-01",
+            "orders": 2,
+            "region": "US"
+          },
+          {
+            "channel": "web",
+            "month": "2024-02",
+            "orders": 4,
+            "region": "EU"
+          },
+          {
+            "channel": "web",
+            "month": "2024-02",
+            "orders": 6,
+            "region": "US"
+          },
+          {
+            "channel": "web",
+            "month": "2024-03",
+            "orders": 8,
+            "region": "EU"
+          },
+          {
+            "channel": "web",
+            "month": "2024-03",
+            "orders": 10,
+            "region": "US"
+          }
+        ]
+      },
+      "field_display_names": {
+        "month": "Month",
+        "region": "Region"
+      },
+      "semantic_types": {
+        "channel": "Category",
+        "month": "YearMonth",
+        "orders": "Count",
+        "region": "Region"
+      }
+    },
+    "problems": []
+  },
+  "orders_heatmap_channel_unplaced": {
+    "input": {
+      "chart_spec": {
+        "chartProperties": {},
+        "chartType": "Heatmap",
+        "encodings": {
+          "color": {
+            "field": "orders"
+          },
+          "x": {
+            "field": "month"
+          },
+          "y": {
+            "field": "region"
+          }
+        }
+      },
+      "data": {
+        "values": [
+          {
+            "channel": "web",
+            "month": "2024-01",
+            "orders": 0,
+            "region": "EU"
+          },
+          {
+            "channel": "store",
+            "month": "2024-01",
+            "orders": 1,
+            "region": "EU"
+          },
+          {
+            "channel": "web",
+            "month": "2024-01",
+            "orders": 2,
+            "region": "US"
+          },
+          {
+            "channel": "store",
+            "month": "2024-01",
+            "orders": 3,
+            "region": "US"
+          },
+          {
+            "channel": "web",
+            "month": "2024-02",
+            "orders": 4,
+            "region": "EU"
+          },
+          {
+            "channel": "store",
+            "month": "2024-02",
+            "orders": 5,
+            "region": "EU"
+          },
+          {
+            "channel": "web",
+            "month": "2024-02",
+            "orders": 6,
+            "region": "US"
+          },
+          {
+            "channel": "store",
+            "month": "2024-02",
+            "orders": 7,
+            "region": "US"
+          },
+          {
+            "channel": "web",
+            "month": "2024-03",
+            "orders": 8,
+            "region": "EU"
+          },
+          {
+            "channel": "store",
+            "month": "2024-03",
+            "orders": 9,
+            "region": "EU"
+          },
+          {
+            "channel": "web",
+            "month": "2024-03",
+            "orders": 10,
+            "region": "US"
+          },
+          {
+            "channel": "store",
+            "month": "2024-03",
+            "orders": 11,
+            "region": "US"
+          }
+        ]
+      },
+      "field_display_names": {
+        "month": "Month",
+        "region": "Region"
+      },
+      "semantic_types": {
+        "channel": "Category",
+        "month": "YearMonth",
+        "orders": "Count",
+        "region": "Region"
+      }
+    },
+    "problems": [
+      "channel has 2 values per month and region but is not on any channel; put it on a channel (such as color) or filter it to one value"
+    ]
+  },
+  "revenue_pie": {
+    "input": {
+      "chart_spec": {
+        "chartProperties": {},
+        "chartType": "Pie Chart",
+        "encodings": {
+          "color": {
+            "field": "region"
+          },
+          "size": {
+            "field": "revenue"
+          }
+        }
+      },
+      "data": {
+        "values": [
+          {
+            "margin": 12.0,
+            "month": "2024-01",
+            "region": "EU",
+            "revenue": 100.0
+          },
+          {
+            "margin": 18.0,
+            "month": "2024-01",
+            "region": "US",
+            "revenue": 80.0
+          }
+        ]
+      },
+      "field_display_names": {
+        "month": "Month",
+        "region": "Region",
+        "revenue": "Revenue"
+      },
+      "semantic_types": {
+        "month": "YearMonth",
+        "region": "Region",
+        "revenue": {
+          "semanticType": "Amount",
+          "unit": "USD"
+        }
+      }
+    },
+    "problems": []
+  },
+  "stacked_area_with_gap": {
+    "input": {
+      "chart_spec": {
+        "chartProperties": {},
+        "chartType": "Area Chart",
+        "encodings": {
+          "color": {
+            "field": "region"
+          },
+          "x": {
+            "field": "month"
+          },
+          "y": {
+            "field": "revenue"
+          }
+        }
+      },
+      "data": {
+        "values": [
+          {
+            "margin": 12.0,
+            "month": "2024-01",
+            "region": "EU",
+            "revenue": 100.0
+          },
+          {
+            "margin": 18.0,
+            "month": "2024-01",
+            "region": "US",
+            "revenue": 80.0
+          },
+          {
+            "margin": 11.5,
+            "month": "2024-02",
+            "region": "EU",
+            "revenue": 120.0
+          },
+          {
+            "margin": 13.0,
+            "month": "2024-03",
+            "region": "EU",
+            "revenue": 130.0
+          },
+          {
+            "margin": 19.5,
+            "month": "2024-03",
+            "region": "US",
+            "revenue": 95.0
+          },
+          {
+            "margin": null,
+            "month": "2024-02",
+            "region": "US",
+            "revenue": 0
+          }
+        ]
+      },
+      "field_display_names": {
+        "month": "Month",
+        "region": "Region",
+        "revenue": "Revenue"
+      },
+      "semantic_types": {
+        "month": "YearMonth",
+        "region": "Region",
+        "revenue": {
+          "semanticType": "Amount",
+          "unit": "USD"
+        }
+      }
+    },
+    "problems": []
+  },
+  "streamgraph_with_gap": {
+    "input": {
+      "chart_spec": {
+        "chartProperties": {},
+        "chartType": "Streamgraph",
+        "encodings": {
+          "color": {
+            "field": "region"
+          },
+          "x": {
+            "field": "month"
+          },
+          "y": {
+            "field": "revenue"
+          }
+        }
+      },
+      "data": {
+        "values": [
+          {
+            "margin": 12.0,
+            "month": "2024-01",
+            "region": "EU",
+            "revenue": 100.0
+          },
+          {
+            "margin": 18.0,
+            "month": "2024-01",
+            "region": "US",
+            "revenue": 80.0
+          },
+          {
+            "margin": 11.5,
+            "month": "2024-02",
+            "region": "EU",
+            "revenue": 120.0
+          },
+          {
+            "margin": 13.0,
+            "month": "2024-03",
+            "region": "EU",
+            "revenue": 130.0
+          },
+          {
+            "margin": 19.5,
+            "month": "2024-03",
+            "region": "US",
+            "revenue": 95.0
+          },
+          {
+            "margin": null,
+            "month": "2024-02",
+            "region": "US",
+            "revenue": 0
+          }
+        ]
+      },
+      "field_display_names": {
+        "month": "Month",
+        "region": "Region",
+        "revenue": "Revenue"
+      },
+      "semantic_types": {
+        "month": "YearMonth",
+        "region": "Region",
+        "revenue": {
+          "semanticType": "Amount",
+          "unit": "USD"
+        }
+      }
+    },
+    "problems": []
+  }
+}
