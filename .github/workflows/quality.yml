@@ -28,7 +28,23 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Sync dependencies
-        run: uv sync --locked --dev
+        run: uv sync --locked --dev --all-extras
+
+      # The sidecar tests run the flint-chart-mcp pinned in ts/package.json.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: ts/package.json
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: ts/pnpm-lock.yaml
+
+      - name: Install the Flint sidecar
+        run: pnpm --dir ts install --frozen-lockfile
 
       - name: Install prek
         run: uv tool install prek
@@ -38,6 +54,8 @@ jobs:
 
       - name: Tests
         run: uv run pytest
+        env:
+          FLINT_SIDECAR_REQUIRED: "1"
 
       - name: Cache pruning
         if: always()

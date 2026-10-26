@@ -36,8 +36,11 @@ uv run pytest        # Tests
 ### Setup
 
 ```bash
-# Install dependencies
-uv sync --dev
+# Install dependencies, with every extra
+uv sync --dev --all-extras
+
+# The sidecar tests run flint-chart-mcp from ts/node_modules
+pnpm --dir ts install
 
 # Install git hooks
 prek install

@@ -1,5 +1,6 @@
 {
   "flintVersion": "1.0.1",
+  "flintMcpVersion": "1.0.1",
   "semanticTypes": [
     "Amount",
     "Boolean",
@@ -25,5 +26,58 @@
     "YearMonth",
     "YearQuarter",
     "ZipCode"
-  ]
+  ],
+  "chartTypes": {
+    "Area Chart": [
+      "inspect-index",
+      "legend-toggle"
+    ],
+    "Bar Chart": [
+      "click-highlight",
+      "legend-toggle"
+    ],
+    "Choropleth": [
+      "inspect"
+    ],
+    "Donut Chart": [
+      "click-highlight",
+      "legend-toggle"
+    ],
+    "Grouped Bar Chart": [
+      "click-highlight",
+      "legend-toggle"
+    ],
+    "Heatmap": [
+      "inspect"
+    ],
+    "KPI Card": [],
+    "Line Chart": [
+      "inspect-index",
+      "legend-toggle"
+    ],
+    "Lollipop Chart": [
+      "click-highlight",
+      "legend-toggle"
+    ],
+    "Pie Chart": [
+      "click-highlight",
+      "legend-toggle"
+    ],
+    "Scatter Plot": [
+      "inspect"
+    ],
+    "Slope Chart": [
+      "inspect-index",
+      "legend-toggle"
+    ],
+    "Stacked Bar Chart": [
+      "click-highlight",
+      "legend-toggle"
+    ],
+    "Streamgraph": [
+      "inspect-index",
+      "legend-toggle"
+    ],
+    "Table": []
+  }
 }

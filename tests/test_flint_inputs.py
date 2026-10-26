@@ -24,6 +24,7 @@ from s_layer_flint_charts import (
     chart_rows,
     check_grain,
     field_display_names,
+    percent_points,
     semantic_types,
 )
 from tests._arrow import table, where
@@ -57,10 +58,11 @@ def _case(
 ) -> dict[str, Any]:
     result = chart_rows(table, fields)
     check = check_grain(result.rows, request, metrics)
+    values, fields, points = percent_points(check.rows, result.fields)
     flint_input = {
-        "data": {"values": orjson.loads(orjson.dumps(check.rows))},
-        "semantic_types": semantic_types(result.fields),
-        "field_display_names": field_display_names(result.fields),
+        "data": {"values": orjson.loads(orjson.dumps(values))},
+        "semantic_types": semantic_types(fields),
+        "field_display_names": field_display_names(fields),
         "chart_spec": {
             "chartType": request.chart_type,
             "encodings": {
@@ -70,7 +72,12 @@ def _case(
             "chartProperties": check.chart_properties,
         },
     }
-    return {"input": flint_input, "problems": list(check.problems)}
+    percent_forms = {
+        name: "points" if name in points else "fraction"
+        for name, field in fields.items()
+        if field.semantic_type in {"Percentage", "PercentageChange"}
+    }
+    return {"input": flint_input, "problems": list(check.problems), "percent_forms": percent_forms}
 
 
 def build_inputs() -> dict[str, dict[str, Any]]:
@@ -174,6 +181,11 @@ def test_inputs_are_current() -> None:
     assert INPUTS_FILE.read_text() == render(), (
         "ts/test/flint-inputs.json is stale; run `uv run python -m tests.test_flint_inputs`"
     )
+
+
+def test_cases_cover_both_percent_forms() -> None:
+    forms = {form for case in build_inputs().values() for form in case["percent_forms"].values()}
+    assert forms == {"fraction", "points"}
 
 
 def test_cases_cover_both_verdicts() -> None:

@@ -1,7 +1,14 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "files": {
-    "includes": ["**", "!dist", "!node_modules", "!pnpm-lock.yaml", "!test/flint-inputs.json"]
+    "includes": [
+      "**",
+      "!dist",
+      "!node_modules",
+      "!pnpm-lock.yaml",
+      "!test/flint-inputs.json",
+      "!test/flint-pin.json"
+    ]
   },
   "formatter": {
     "indentStyle": "space",

@@ -1,22 +1,32 @@
 import { readFileSync } from "node:fs";
-import { getRegistryEntry, isRegistered } from "flint-chart";
+import { getRegistryEntry, isRegistered, supportedInteractionPresets } from "flint-chart";
+import { vlGetTemplateDef } from "flint-chart/vegalite";
 import { describe, expect, it } from "vitest";
 
 // Kept in step with the Python mapping (s_layer_flint_charts._mapping) by hand; a Python test checks it.
 const pin = JSON.parse(readFileSync(new URL("./flint-pin.json", import.meta.url), "utf8")) as {
   flintVersion: string;
+  flintMcpVersion: string;
   semanticTypes: string[];
+  chartTypes: Record<string, string[]>;
 };
 
-const installed = JSON.parse(
-  readFileSync(new URL("../node_modules/flint-chart/package.json", import.meta.url), "utf8"),
-) as { version: string };
+const version = (name: string) =>
+  (
+    JSON.parse(
+      readFileSync(new URL(`../node_modules/${name}/package.json`, import.meta.url), "utf8"),
+    ) as { version: string }
+  ).version;
 
 const TIME_AXIS = ["Date", "DateTime", "Year", "YearMonth", "YearQuarter"];
 
 describe("Python mapping pin", () => {
   it("names the flint-chart version installed here", () => {
-    expect(installed.version).toBe(pin.flintVersion);
+    expect(version("flint-chart")).toBe(pin.flintVersion);
+  });
+
+  it("names the flint-chart-mcp version installed here", () => {
+    expect(version("flint-chart-mcp")).toBe(pin.flintMcpVersion);
   });
 
   it.each(pin.semanticTypes)("%s is a registered Flint semantic type", (semanticType) => {
@@ -56,4 +66,17 @@ describe("Python mapping pin", () => {
     expect(getRegistryEntry("Amount").formatClass).toBe("currency");
     expect(getRegistryEntry("Price").formatClass).toBe("currency");
   });
+});
+
+describe("chart types show_chart draws", () => {
+  it.each(Object.entries(pin.chartTypes))(
+    "%s is a Vega-Lite chart that supports its default interactions",
+    (chartType, presets) => {
+      const template = vlGetTemplateDef(chartType);
+      expect(template).toBeDefined();
+      expect(supportedInteractionPresets(template?.interactionSupport)).toEqual(
+        expect.arrayContaining(presets),
+      );
+    },
+  );
 });

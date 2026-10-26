@@ -11,6 +11,19 @@ dependencies = [
     "orjson>=3.10",
     "pyarrow>=18",
     "s-layer-semantic-formats>=0.1.0,<0.2",
+    "semolina>=0.8.0",
+]
+
+[project.optional-dependencies]
+server = [
+    "backports-zstd>=1.0 ; python_full_version < '3.14'",
+    "starlette>=0.40",
+]
+validate = [
+    "mcp>=2.0",
+]
+pydantic-ai = [
+    "pydantic-ai-slim>=2.0",
 ]
 
 [build-system]
@@ -20,6 +33,7 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "basedpyright>=1.38.0",
+    "httpx>=0.28",
     "hypothesis>=6.100",
     "ipython>=9.10.0",
     "pdbpp>=0.12.0.post1",
@@ -66,3 +80,6 @@ ignore = [
 
 [tool.pytest.ini_options]
 addopts = "-v"
+
+[tool.uv.sources]
+semolina = { git = "https://github.com/s-layer/semolina", rev = "f6299983db4935237a0690a5e831ba0eeb85786a" }
