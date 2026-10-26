@@ -212,7 +212,7 @@ The hook [`<SLayerChart>`](#slayerchart) uses: fetches the rows and checks the c
 | `options.fetch` | `typeof fetch` | As on `<SLayerChart>`. |
 | `options.requestInit` | `RequestInit` | As on `<SLayerChart>`. |
 
-**Returns:** `ChartState`:
+**Returns:** a `ChartState`, exported as a type:
 
 | `status` | Other fields | Meaning |
 |---|---|---|
@@ -257,7 +257,7 @@ import { describeError, SLayerChart } from "@s-layer/flint-charts/react";
 <SLayerChart chart={chart} renderError={(error) => <Toast>{describeError(error)}</Toast>} />;
 ```
 
-### `SLayerChartProps`, `ShowChartToolCallProps`, `UseChartOptions`, `ChartSkeletonProps`, `ChartErrorNoteProps`
+### `SLayerChartProps`, `ShowChartToolCallProps`, `UseChartOptions`, `ChartState`, `ChartSkeletonProps`, `ChartErrorNoteProps`
 
 The prop and option types above.
 
@@ -288,8 +288,10 @@ const renderers = [showChartRenderer({ height: 360 })];
 ### `useShowChartRenderer(options?)`
 
 Registers the same renderer from a component inside the provider. It takes the same
-options. A call draws with the options of the hook's latest render, so a new width or token
-applies to calls drawn after it.
+options. A call draws with the options of the hook's latest render, so a new width reaches
+charts already on screen when they re-render. New `requestInit` or `fetch` options apply only
+to charts whose rows haven't been fetched yet: rows are fetched once per `data.url`, so a new
+token doesn't refetch a chart that already loaded or failed.
 
 ```tsx
 import { useShowChartRenderer } from "@s-layer/flint-charts/copilotkit";

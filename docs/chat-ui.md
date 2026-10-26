@@ -154,7 +154,9 @@ error component. The defaults carry the classes `slayer-chart-skeleton` and
 - The rows route answers 404: "This chart's data has expired. Ask for it again to redraw it."
   The route answers 404 for a chart that has expired, and also for a request that does not
   carry the conversation the chart belongs to. By default the store keeps a conversation's
-  newest 50 charts, until an hour after its last use (see [Limits](agents.md#limits)).
+  newest 50 charts, until an hour after the agent last used it or until more than 1,000
+  conversations push it out. Drawing a chart does not count as a use (see
+  [Limits](agents.md#limits)).
 - The rows could not be fetched: "This chart's data could not be loaded."
 - Flint would draw something other than the rows, such as merging rows into one mark: "This
   chart could not be drawn." The server checks each chart before it answers, so this means the
