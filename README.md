@@ -2,7 +2,7 @@
 
 Semantic-layer-aware Flint charts for agents: types, grain guard and show_chart tool
 
-This repository holds two packages that release together:
+This repository holds two packages:
 
 - `s-layer-flint-charts` (Python, repository root): maps semantic-layer field metadata to
   [Flint](https://github.com/microsoft/flint-chart) types, guards chart grain and serves the
@@ -52,7 +52,14 @@ prek install
 cd ts
 pnpm install
 pnpm lint && pnpm typecheck && pnpm test
+pnpm test:browser  # Playwright, in Chromium (pnpm exec playwright install chromium first)
 ```
+
+### Releases
+
+The packages are released apart. Tag `vX.Y.Z` releases the Python package to PyPI; tag
+`ts-vX.Y.Z`, after setting that version in `ts/package.json` and `VERSION` in `ts/src/index.ts`,
+releases the npm package.
 
 ## License
 

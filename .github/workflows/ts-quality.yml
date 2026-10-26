@@ -49,3 +49,17 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Install the browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Browser tests
+        run: pnpm test:browser
+
+      - name: Keep the browser test report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-node${{ matrix.node-version }}
+          path: ts/playwright-report/
+          retention-days: 7

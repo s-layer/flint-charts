@@ -8,7 +8,7 @@ This document provides context for AI assistants (like Claude Code) working on t
 - **Tests**: `tests/` - Pytest test suite with fixtures in conftest.py
 - **Build**: uv + pyproject.toml, uv_build backend
 - **Python**: >=3.11, strict type checking enabled
-- **TypeScript package**: `ts/` holds `@s-layer/flint-charts` (pnpm, TypeScript, Biome, Vitest), released alongside the Python package
+- **TypeScript package**: `ts/` holds `@s-layer/flint-charts` (pnpm, TypeScript, Biome, Vitest, Playwright), released apart from the Python package with `ts-vX.Y.Z` tags
 
 ## Quality Gates (Mandatory)
 
@@ -37,6 +37,7 @@ pnpm lint       # Biome lint + format check
 pnpm typecheck  # tsc --noEmit
 pnpm test       # Vitest
 pnpm build      # tsc to dist/
+pnpm test:browser  # Playwright: draws real charts in Chromium
 ```
 
 Apply formatting: `pnpm format`
