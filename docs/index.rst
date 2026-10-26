@@ -35,13 +35,14 @@ Map each result column to the Flint type its ``s_layer`` block declares:
    semantic_types({"revenue": map_field(block, pa.float64())})
    # {"revenue": {"semanticType": "Amount", "unit": "USD"}}
 
-See :doc:`mapping` for the full table, and :doc:`agents` to give an agent query and chart
-tools.
+See :doc:`mapping` for the full table, :doc:`agents` to give an agent query and chart
+tools, and :doc:`chat-ui` to draw those charts in a chat.
 
 .. toctree::
    :hidden:
 
    agents
+   chat-ui
    mapping
    grain
    API Reference <autoapi/index>

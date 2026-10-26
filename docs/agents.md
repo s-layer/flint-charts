@@ -108,15 +108,9 @@ points.
 
 ## Drawing the chart
 
-Flint does not fetch `data.url` itself. The chart component fetches it and puts the rows in
-`data.values` before calling Flint:
-
-```ts
-const rows = await (await fetch(chart.data.url)).json();
-const spec = assembleVegaLite({ ...chart, data: { values: rows } });
-```
-
-`@s-layer/flint-charts` will ship this as a component for CopilotKit and assistant-ui.
+Flint does not fetch `data.url` itself, so the browser fetches the rows and puts them in
+`data.values` before Flint draws the chart. `@s-layer/flint-charts` does this for CopilotKit,
+assistant-ui and plain React; see [Charts in a chat UI](chat-ui.md).
 
 ## Checking charts with Flint
 
@@ -140,5 +134,6 @@ grain guard alone.
 
 ## See also
 
+- [Charts in a chat UI](chat-ui.md)
 - [Rows and the grain guard](grain.md)
 - [Mapping semantic formats to Flint](mapping.md)
