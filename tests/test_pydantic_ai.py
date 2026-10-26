@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -9,6 +10,7 @@ import pytest
 from pydantic_ai import Agent, ModelMessage, ModelResponse, RunContext, TextPart, ToolCallPart
 from pydantic_ai.messages import ToolReturnPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
+from semolina import Metric, SemanticView
 
 from s_layer_flint_charts import ChartStore
 from s_layer_flint_charts.pydantic_ai import chart_toolset
@@ -160,3 +162,30 @@ async def test_a_column_that_cannot_be_charted_is_sent_back_to_the_model() -> No
     retry = seen[1][-1]
     assert retry.outcome == "retried"
     assert "region" in str(retry.content)
+
+
+def test_tool_names_are_provider_safe_and_distinct() -> None:
+    class Orders(SemanticView, view="sales.orders"):
+        revenue = Metric[float]()
+
+    class FinanceOrders(SemanticView, view="finance.orders"):
+        revenue = Metric[float]()
+
+    class Cafe(SemanticView, view="café_" + "x" * 80):
+        revenue = Metric[float]()
+
+    names: list[str] = []
+
+    def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        names.extend(tool.name for tool in info.function_tools)
+        return ModelResponse(parts=[TextPart("done")])
+
+    tools = chart_toolset(
+        [Orders, FinanceOrders, Cafe], store=ChartStore(), session_id=conversation_id
+    )
+    Agent(FunctionModel(respond), deps_type=Conversation, toolsets=[tools]).run_sync(
+        "hi", deps=Conversation("a")
+    )
+    assert {"query_sales_orders", "query_finance_orders"} <= set(names)
+    assert all(re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", name) for name in names)
+    assert len(set(names)) == 4

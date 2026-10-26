@@ -94,9 +94,9 @@ def chart_toolset(
         The toolset, to pass in an agent's ``toolsets``.
     """
     toolset: FunctionToolset[DepsT] = FunctionToolset()
-    for view in views:
+    for view, name in zip(views, _tool_names(views), strict=True):
         toolset.add_tool(
-            _query_tool(view, store=store, session_id=session_id, cap=cap, fetch=fetch)
+            _query_tool(view, name, store=store, session_id=session_id, cap=cap, fetch=fetch)
         )
 
     async def chart(
@@ -138,6 +138,7 @@ def chart_toolset(
 
 def _query_tool(
     view: type[SemanticView],
+    name: str,
     *,
     store: ChartStore,
     session_id: Callable[[RunContext[DepsT]], str],
@@ -159,15 +160,29 @@ def _query_tool(
     )
     return Tool.from_schema(
         query,
-        name=_tool_name(view._view_name),
+        name=name,
         description=description,
         json_schema=query_spec_schema(view),
         takes_ctx=True,
     )
 
 
+def _tool_names(views: Sequence[type[SemanticView]]) -> list[str]:
+    """
+    ``query_<view>`` per view, by the view's own name, or its qualified name where two clash.
+
+    Names keep to ``[a-z0-9_]`` and 64 characters, which every model provider accepts.
+    """
+    short = [_tool_name(view._view_name.rsplit(".", 1)[-1]) for view in views]
+    return [
+        name if short.count(name) == 1 else _tool_name(view._view_name)
+        for name, view in zip(short, views, strict=True)
+    ]
+
+
 def _tool_name(view_name: str) -> str:
-    return "query_" + re.sub(r"\W+", "_", view_name.rsplit(".", 1)[-1]).strip("_").lower()
+    slug = re.sub(r"[^a-z0-9]+", "_", view_name.lower()).strip("_") or "view"
+    return f"query_{slug}"[:64]
 
 
 _SHOW_CHART_SCHEMA: dict[str, Any] = {
