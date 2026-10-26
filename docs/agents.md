@@ -109,8 +109,8 @@ points.
 ## Drawing the chart
 
 Flint does not fetch `data.url` itself, so the browser fetches the rows and puts them in
-`data.values` before Flint draws the chart. `@s-layer/flint-charts` does this for CopilotKit,
-assistant-ui and plain React; see [Charts in a chat UI](chat-ui.md).
+`data.values` before Flint draws the chart. The npm package `@s-layer/flint-charts` does this
+for CopilotKit, assistant-ui and plain React; see [Charts in a chat UI](chat-ui.md).
 
 ## Checking charts with Flint
 
