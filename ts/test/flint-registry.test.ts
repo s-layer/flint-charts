@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { getRegistryEntry, isRegistered } from "flint-chart";
 import { describe, expect, it } from "vitest";
 
-// Written by the Python package's tests from its mapping (s_layer_flint_charts._mapping).
+// Kept in step with the Python mapping (s_layer_flint_charts._mapping) by hand; a Python test checks it.
 const pin = JSON.parse(readFileSync(new URL("./flint-pin.json", import.meta.url), "utf8")) as {
   flintVersion: string;
   semanticTypes: string[];

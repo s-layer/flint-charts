@@ -19,7 +19,7 @@ declares instead of what a model guesses.
 | `boolean` | `Boolean` | |
 | `geo` | `Country`, `Region`, `State`, `City`, `ZipCode`, `Latitude` or `Longitude` by `level` | |
 | `date` or `datetime`, grain `year` / `quarter` / `month` | `Year` / `YearQuarter` / `YearMonth` | |
-| `date` or `datetime`, grain `week` or `day`; `date` with no grain | `Date` | |
+| `date` or `datetime`, grain `week` or `day`; `date` with no grain or any sub-day grain | `Date` | |
 | `datetime`, grain `hour` or finer, or no grain | `DateTime` | |
 | `identifier` | `ID` | |
 
@@ -41,6 +41,12 @@ A few rules sit behind the table:
 Each `FieldType` also has a `value_form`, which says how the column's values must be written
 into the chart's rows for that type: a year as an integer, a quarter as `"2024-Q1"`, a month as
 `"2024-01"`, a 0-100 percentage divided by 100.
+
+Percentages always carry `intrinsicDomain` `[0, 1]`, because Flint only formats a percentage
+as one when a domain is set. That fits shares and rates. A percentage that can leave the range,
+such as growth or a change in margin, still draws on the position axes, since Flint extends an
+axis past the domain to fit the data. On a color or size channel, though, Flint clamps to the
+domain. The row-building step, which sees the values, will handle that case.
 
 Display hints in the block (`decimals`, `compact`, `negative`, boolean labels) have no Flint
 annotation to go to, so they are not passed on.

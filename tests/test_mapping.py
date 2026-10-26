@@ -197,6 +197,15 @@ class TestTemporalGrain:
         mapped = map_field(block({"kind": kind}, time={"grain": grain}), pa.date32())
         assert (mapped.semantic_type, mapped.value_form) == (semantic_type, value_form)
 
+    @pytest.mark.parametrize("grain", ["hour", "minute", "second"])
+    def test_a_date_stays_a_date_at_sub_day_grain(self, grain: Grain) -> None:
+        # A date has no time of day, so it never becomes a continuous DateTime axis.
+        expected = ("Date", "date")
+        declared = map_field(block({"kind": "date"}), pa.date32(), grain=grain)
+        undeclared = map_field(None, pa.date32(), grain=grain)
+        assert (declared.semantic_type, declared.value_form) == expected
+        assert (undeclared.semantic_type, undeclared.value_form) == expected
+
     def test_never_a_cyclic_type(self) -> None:
         # Flint's Month, Quarter, Day and Hour are cycles (Jan..Dec), not points on a timeline.
         cyclic = {"Month", "Quarter", "Week", "Day", "Hour", "YearWeek"}
