@@ -14,9 +14,12 @@ and `check_grain` refuses a chart that would merge rows, in words a model can ac
   timestamp is bucketed by its local date, so a Tokyo order on 1 February counts in February.
 - A 0-100 percentage is divided by 100. Flint guesses whether percentages run 0-1 or 0-100 from
   the data, so they always go out as fractions.
-- Decimals become floats. An integer outside ±(2^53 − 1), which a JavaScript number cannot hold
-  exactly, makes its column strings rather than numbers that silently change.
-- Binary, duration and nested columns raise `UnsupportedColumnError`.
+- Decimals with a fraction become floats. Whole-number decimals (an id, a `HUGEINT` sum) are
+  integers. An integer outside ±(2^53 − 1), which a JavaScript number cannot hold exactly,
+  makes its column strings rather than numbers that silently change.
+- Nanosecond timestamps are cut to microseconds, the finest a Python or JavaScript date holds.
+- Binary, duration and nested columns raise `UnsupportedColumnError`, and two columns with the
+  same name raise `DuplicateColumnError`.
 - Results longer than the cap (5,000 rows by default) are cut, and `capped` is set. A capped
   result should be filtered or aggregated further rather than charted.
 - `fields` comes back fitted to the values: a percentage that leaves `[0, 1]` becomes
@@ -33,8 +36,10 @@ chart is safe to draw when there are none.
 
 | Rule | Refused example | What the model is told |
 | --- | --- | --- |
-| Every encoded column exists, and no encoding sets `aggregate` | `y: {field: revenue, aggregate: sum}` | the query already aggregates, so charts draw one mark per row |
+| The result has rows | an empty result | the query returned no rows, so there is nothing to chart |
+| Every encoded column is in the rows, and no encoding sets `aggregate` | `y: {field: revenue, aggregate: sum}` | the query already aggregates, so charts draw one mark per row |
 | Every dimension is on a channel or has one value per mark | monthly revenue by region drawn as one line with region on no channel | region has 2 values per month but is not on any channel; put it on a channel (such as color) or filter it to one value |
+| No two rows share every placed value | monthly rows drawn on a quarter axis | 3 rows share one quarter and region mark; the result is finer than the chart, so query at the grain the chart shows |
 | A stacked chart only stacks what adds up across its color | margin (a ratio) as bars stacked by region | a Bar Chart sums margin across region, but it does not add up; use a Line Chart or a Grouped Bar Chart, or take color off |
 | | an account balance stacked by snapshot day | it cannot be summed over day |
 
@@ -44,16 +49,20 @@ stack. A metric whose additivity is unknown is not stacked, since its sum may be
 `chartProperties.stackMode` to `"layered"` turns stacking off.
 
 A dimension that takes one value per mark, such as a region beside a country, is fine to leave
-off the chart.
+off the chart. Tooltip and text channels label a mark without drawing a new one, so a dimension
+that is only in the tooltip still needs one value per mark. Only the measure is stacked (`x` or
+`y`, or `size` for a pie), so a ratio in a tooltip does not stop revenue stacking.
 
 ## Stacked areas with gaps
 
 Flint fills a missing point in a stacked area by interpolating between its neighbours, which
 draws sales in a month that had none. When a stacked area is missing points:
 
-- For additive metrics, `check_grain` adds the missing points as zeros. `GrainCheck.rows` is
-  what to draw.
-- Otherwise it sets `stackMode` to `"layered"` in `GrainCheck.chart_properties`, so each area
+- For additive metrics, `check_grain` adds the missing points (each facet, x value and color)
+  as zeros. Other dimensions on the added rows are copied from a row with the same x, color or
+  facet value. `GrainCheck.rows` is what to draw.
+- Otherwise, or when another dimension has no single source for its value, it sets
+  `stackMode` to `"layered"` in `GrainCheck.chart_properties`, so each area
   is drawn on its own.
 - When the filled grid would pass the row cap, the chart is refused.
 

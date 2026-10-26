@@ -14,6 +14,7 @@ from hypothesis import strategies as st
 
 from s_layer_flint_charts import (
     DEFAULT_ROW_CAP,
+    DuplicateColumnError,
     FieldType,
     UnsupportedColumnError,
     chart_rows,
@@ -176,3 +177,32 @@ class TestCapAndFit:
     def test_chunked_columns(self) -> None:
         result = chart_rows(chunked({"n": [1, 2]}, {"n": [3]}), {})
         assert [row["n"] for row in result.rows] == [1, 2, 3]
+
+
+class TestReviewRound1:
+    """Cases from the first review of the rows conversion."""
+
+    def test_nanosecond_timestamps_convert(self) -> None:
+        values = array([1_700_000_000_123_456_789, None], pa.timestamp("ns"))
+        assert single(values) == [dt.datetime(2023, 11, 14, 22, 13, 20, 123456), None]
+
+    def test_zoned_nanosecond_timestamps_convert(self) -> None:
+        values = array([1_700_000_000_123_456_789], pa.timestamp("ns", tz="UTC"))
+        field = FieldType(semantic_type="DateTime", value_form="datetime")
+        result = chart_rows(table({"t": values}), {"t": field})
+        assert result.to_json() == b'[{"t":"2023-11-14T22:13:20.123456+00:00"}]'
+
+    def test_integral_decimal_becomes_integer(self) -> None:
+        values = array([Decimal(12), Decimal(-(2**53 - 1)), None], pa.decimal128(38, 0))
+        result = single(values)
+        assert result == [12, -(2**53 - 1), None]
+        assert all(isinstance(v, int) for v in result if v is not None)
+
+    def test_large_integral_decimal_becomes_string(self) -> None:
+        values = array([Decimal(1), Decimal("12345678901234567890")], pa.decimal128(38, 0))
+        assert single(values) == ["1", "12345678901234567890"]
+
+    def test_duplicate_column_names_refused(self) -> None:
+        duplicated = table({"id": [1], "x": [2]}).rename_columns(["id", "id"])
+        with pytest.raises(DuplicateColumnError, match="'id'"):
+            chart_rows(duplicated, {})

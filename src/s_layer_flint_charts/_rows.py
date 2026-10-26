@@ -16,7 +16,13 @@ if TYPE_CHECKING:
 
     from s_layer_flint_charts._mapping import FieldType, ValueForm
 
-__all__ = ["DEFAULT_ROW_CAP", "ChartRows", "UnsupportedColumnError", "chart_rows"]
+__all__ = [
+    "DEFAULT_ROW_CAP",
+    "ChartRows",
+    "DuplicateColumnError",
+    "UnsupportedColumnError",
+    "chart_rows",
+]
 
 DEFAULT_ROW_CAP = 5_000
 """Rows a charted result keeps. Flint's own validation limit is 100,000."""
@@ -33,6 +39,10 @@ MAX_SAFE_INTEGER = 2**53 - 1
 
 class UnsupportedColumnError(TypeError):
     """A result column has an Arrow type that has no JSON form for a chart."""
+
+
+class DuplicateColumnError(ValueError):
+    """Two result columns share a name, so a row cannot hold both."""
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -62,9 +72,10 @@ def chart_rows(
     Convert a query result into the rows Flint draws.
 
     Each column is written in its field's ``value_form`` (a year as an integer, a month as
-    ``"2024-01"``, a 0-100 percentage as a fraction). Decimals become floats, and an integer
-    column holding a value a JavaScript number cannot hold exactly becomes strings. Dates and
-    timestamps are written as ISO 8601 by orjson. A column with no entry in ``fields`` is
+    ``"2024-01"``, a 0-100 percentage as a fraction). Decimals with a fraction become floats;
+    whole-number decimals become integers. An integer column holding a value a JavaScript
+    number cannot hold exactly becomes strings. Dates and timestamps are written as ISO 8601 by
+    orjson, nanosecond timestamps cut to microseconds. A column with no entry in ``fields`` is
     passed through with the same casts.
 
     Args:
@@ -78,7 +89,15 @@ def chart_rows(
     Raises:
         UnsupportedColumnError: A column is binary, a duration, nested or of another type with
             no JSON form.
+        DuplicateColumnError: Two columns share a name.
     """
+    seen: set[str] = set()
+    for name in table.column_names:
+        if name in seen:
+            raise DuplicateColumnError(
+                f"column {name!r} appears more than once; give each column its own name"
+            )
+        seen.add(name)
     total_rows = table.num_rows
     capped = total_rows > cap
     if capped:
@@ -104,15 +123,18 @@ def _json_safe(name: str, column: pa.Array[Any]) -> pa.Array[Any]:
     if pa.types.is_dictionary(kind):
         return _json_safe(name, cast("Any", column).dictionary_decode())
     if pa.types.is_decimal(kind):
-        return _pc.cast(column, pa.float64())
-    if pa.types.is_integer(kind):
-        if column.null_count == len(column):
-            return column
-        bounds = _pc.min_max(column)
-        low, high = bounds["min"].as_py(), bounds["max"].as_py()
-        if low < -MAX_SAFE_INTEGER or high > MAX_SAFE_INTEGER:
+        if kind.scale > 0:
+            # A fraction is a measure; a double's 15-17 significant digits are plenty to draw it.
+            return _pc.cast(column, pa.float64())
+        # A whole-number decimal (an id, a large count) is an integer: exact, or a string.
+        if not _safe_integers(column):
             return _pc.cast(column, pa.string())
-        return column
+        return _pc.cast(column, pa.int64())
+    if pa.types.is_integer(kind):
+        return column if _safe_integers(column) else _pc.cast(column, pa.string())
+    if pa.types.is_timestamp(kind) and kind.unit == "ns":
+        # Python datetimes stop at microseconds, and pyarrow refuses to drop the rest itself.
+        return _pc.cast(column, pa.timestamp("us", tz=kind.tz), safe=False)
     if (
         pa.types.is_floating(kind)
         or pa.types.is_boolean(kind)
@@ -126,6 +148,15 @@ def _json_safe(name: str, column: pa.Array[Any]) -> pa.Array[Any]:
     if pa.types.is_string_view(kind):
         return _pc.cast(column, pa.string())
     raise UnsupportedColumnError(f"column {name!r} has type {kind}, which a chart cannot draw")
+
+
+def _safe_integers(column: pa.Array[Any]) -> bool:
+    """Whether every value of a whole-number column fits a JavaScript number exactly."""
+    if column.null_count == len(column):
+        return True
+    bounds = _pc.min_max(column)
+    low, high = bounds["min"].as_py(), bounds["max"].as_py()
+    return low >= -MAX_SAFE_INTEGER and high <= MAX_SAFE_INTEGER
 
 
 def _apply_value_form(column: pa.Array[Any], value_form: ValueForm) -> pa.Array[Any]:

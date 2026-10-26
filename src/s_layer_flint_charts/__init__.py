@@ -27,6 +27,7 @@ from s_layer_flint_charts._mapping import (
 from s_layer_flint_charts._rows import (
     DEFAULT_ROW_CAP,
     ChartRows,
+    DuplicateColumnError,
     UnsupportedColumnError,
     chart_rows,
 )
@@ -39,6 +40,7 @@ __all__ = [
     "STACKING_CHART_TYPES",
     "ChartRequest",
     "ChartRows",
+    "DuplicateColumnError",
     "FieldType",
     "GrainCheck",
     "Grain",

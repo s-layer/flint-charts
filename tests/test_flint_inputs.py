@@ -34,6 +34,7 @@ if TYPE_CHECKING:
 INPUTS_FILE = Path(__file__).parent.parent / "ts" / "test" / "flint-inputs.json"
 
 MONTHS = [dt.date(2024, m, 1) for m in (1, 2, 3)]
+QUARTERS = [dt.date(2024, m, 1) for m in (1, 4, 7)]
 MONTH = FieldType(semantic_type="YearMonth", value_form="year_month", display_name="Month")
 QUARTER = FieldType(semantic_type="YearQuarter", value_form="year_quarter")
 REGION = FieldType(semantic_type="Region", display_name="Region")
@@ -83,6 +84,13 @@ def build_inputs() -> dict[str, dict[str, Any]]:
         }
     )
     # US has no sales in February.
+    by_quarter = table(
+        {
+            "quarter": [q for q in QUARTERS for _ in range(2)],
+            "region": ["EU", "US"] * 3,
+            "margin": [12.0, 18.0, 11.5, 17.0, 13.0, 19.5],
+        }
+    )
     gappy = where(by_region, [True, True, True, False, True, True])
     by_channel = table(
         {
@@ -104,13 +112,13 @@ def build_inputs() -> dict[str, dict[str, Any]]:
             {"revenue": ADDITIVE, "margin": RATIO},
         ),
         "margin_lines_by_quarter": _case(
-            by_region,
-            {"month": QUARTER, "region": REGION, "margin": MARGIN, "revenue": REVENUE},
+            by_quarter,
+            {"quarter": QUARTER, "region": REGION, "margin": MARGIN},
             ChartRequest(
                 chart_type="Line Chart",
-                encodings={"x": "month", "y": "margin", "color": "region"},
+                encodings={"x": "quarter", "y": "margin", "color": "region"},
             ),
-            {"revenue": ADDITIVE, "margin": RATIO},
+            {"margin": RATIO},
         ),
         "growth_bars": _case(
             growth,

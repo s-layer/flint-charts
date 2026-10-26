@@ -227,3 +227,137 @@ class TestStackedAreaGaps:
         before = [dict(row) for row in rows]
         check_grain(rows, self.request(), {"revenue": ADDITIVE})
         assert rows == before
+
+
+class TestReviewRound1:
+    """Cases from the first review of the grain guard."""
+
+    def test_repeated_placed_key_refused(self) -> None:
+        rows = [{"m": "Jan", "r": 0.1}, {"m": "Jan", "r": 0.2}]
+        request = ChartRequest(chart_type="Bar Chart", encodings={"x": "m", "y": "r"})
+        check = check_grain(rows, request, {"r": RATIO})
+        assert check.problems == (
+            "2 rows share one m mark; the result is finer than the chart (for example months "
+            "drawn as quarters), so query at the grain the chart shows",
+        )
+
+    def test_repeated_key_with_every_dimension_placed_refused(self) -> None:
+        rows = [*monthly_by_region("margin"), {"month": "2024-01", "region": "EU", "margin": 9}]
+        request = ChartRequest(
+            chart_type="Line Chart", encodings={"x": "month", "y": "margin", "color": "region"}
+        )
+        check = check_grain(rows, request, {"margin": RATIO})
+        assert check.problems[0].startswith("2 rows share one month and region mark")
+
+    def test_empty_result_says_so(self) -> None:
+        request = ChartRequest(chart_type="Line Chart", encodings={"x": "month", "y": "revenue"})
+        check = check_grain([], request, {"revenue": ADDITIVE})
+        assert check.problems == ("the query returned no rows, so there is nothing to chart",)
+
+    def test_empty_stacked_area_of_metrics_does_not_crash(self) -> None:
+        request = ChartRequest(
+            chart_type="Area Chart", encodings={"y": "revenue", "color": "units"}
+        )
+        check = check_grain([], request, {"revenue": ADDITIVE, "units": ADDITIVE})
+        assert not check.ok
+
+    def test_encoded_metric_missing_from_rows_refused(self) -> None:
+        request = ChartRequest(chart_type="Line Chart", encodings={"x": "month", "y": "profit"})
+        rows = [{"month": "2024-01", "revenue": 1}]
+        check = check_grain(rows, request, {"revenue": ADDITIVE, "profit": ADDITIVE})
+        assert check.problems == ("profit is not a column of the result",)
+
+    def test_metric_in_tooltip_is_not_stacked(self) -> None:
+        rows = [{**row, "margin": 0.1} for row in monthly_by_region()]
+        request = ChartRequest(
+            chart_type="Stacked Bar Chart",
+            encodings={"x": "month", "y": "revenue", "color": "region", "tooltip": "margin"},
+        )
+        assert check_grain(rows, request, {"revenue": ADDITIVE, "margin": RATIO}).ok
+
+    def test_horizontal_stacked_bar_measure_on_x(self) -> None:
+        request = ChartRequest(
+            chart_type="Bar Chart", encodings={"y": "month", "x": "margin", "color": "region"}
+        )
+        check = check_grain(monthly_by_region("margin"), request, {"margin": RATIO})
+        assert not check.ok
+
+    def test_dimension_in_tooltip_does_not_split_a_stack(self) -> None:
+        # Bars are positioned by x only; a tooltip dimension does not stop regions stacking.
+        rows = [{**row, "label": f"{row['month']}/{row['region']}"} for row in monthly_by_region()]
+        request = ChartRequest(
+            chart_type="Bar Chart",
+            encodings={"x": "month", "y": "revenue", "color": "region", "tooltip": "label"},
+        )
+        check = check_grain(rows, request, {"revenue": RATIO})
+        assert not check.ok
+
+    def test_area_fill_ignores_tooltip_dimension(self) -> None:
+        rows = [{**row, "label": f"M{row['month']}"} for row in monthly_by_region()]
+        request = ChartRequest(
+            chart_type="Area Chart",
+            encodings={"x": "month", "y": "revenue", "color": "region", "tooltip": "label"},
+        )
+        check = check_grain(rows, request, {"revenue": ADDITIVE})
+        assert check.ok
+        assert check.rows == rows
+
+    def test_area_fill_copies_dimensions_from_the_same_x(self) -> None:
+        rows = [
+            {"month": m, "quarter": q, "region": r, "revenue": 1}
+            for m, q in (("2024-03", "Q1"), ("2024-06", "Q2"))
+            for r in ("EU", "US")
+            if (m, r) != ("2024-06", "EU")
+        ]
+        request = ChartRequest(
+            chart_type="Area Chart",
+            encodings={"x": "month", "y": "revenue", "color": "region", "tooltip": "quarter"},
+        )
+        check = check_grain(rows, request, {"revenue": ADDITIVE})
+        assert check.ok
+        assert check.rows[-1] == {"month": "2024-06", "quarter": "Q2", "region": "EU", "revenue": 0}
+
+    def test_area_fill_copies_unplaced_dimensions_from_the_same_color(self) -> None:
+        rows = [
+            {"month": m, "country": c, "region": r, "revenue": 1}
+            for m in ("2024-01", "2024-02")
+            for c, r in (("FR", "EU"), ("CA", "NA"))
+            if (m, c) != ("2024-02", "CA")
+        ]
+        request = ChartRequest(
+            chart_type="Area Chart", encodings={"x": "month", "y": "revenue", "color": "country"}
+        )
+        check = check_grain(rows, request, {"revenue": ADDITIVE})
+        assert check.ok
+        assert check.rows[-1] == {"month": "2024-02", "country": "CA", "region": "NA", "revenue": 0}
+
+    def test_area_fill_per_facet(self) -> None:
+        rows = [
+            {"month": m, "region": r, "segment": s, "revenue": 1}
+            for s in ("retail", "trade")
+            for m in ("2024-01", "2024-02")
+            for r in ("EU", "US")
+            if (s, m, r) != ("trade", "2024-02", "US")
+        ]
+        request = ChartRequest(
+            chart_type="Area Chart",
+            encodings={"x": "month", "y": "revenue", "color": "region", "column": "segment"},
+        )
+        check = check_grain(rows, request, {"revenue": ADDITIVE})
+        assert check.ok
+        assert check.rows[-1] == {
+            "month": "2024-02",
+            "region": "US",
+            "segment": "trade",
+            "revenue": 0,
+        }
+
+    def test_dimension_only_in_tooltip_refused_with_its_own_words(self) -> None:
+        request = ChartRequest(
+            chart_type="Line Chart", encodings={"x": "month", "y": "revenue", "tooltip": "region"}
+        )
+        check = check_grain(monthly_by_region(), request, {"revenue": ADDITIVE})
+        assert check.problems == (
+            "region has 2 values per month but only labels the marks; put it on a channel "
+            "(such as color) or filter it to one value",
+        )
