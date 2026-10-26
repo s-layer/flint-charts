@@ -1,0 +1,29 @@
+{
+  "flintVersion": "1.0.1",
+  "semanticTypes": [
+    "Amount",
+    "Boolean",
+    "Category",
+    "City",
+    "Count",
+    "Country",
+    "Date",
+    "DateTime",
+    "Duration",
+    "ID",
+    "Latitude",
+    "Longitude",
+    "Number",
+    "Percentage",
+    "PercentageChange",
+    "Price",
+    "Quantity",
+    "Region",
+    "Score",
+    "State",
+    "Year",
+    "YearMonth",
+    "YearQuarter",
+    "ZipCode"
+  ]
+}

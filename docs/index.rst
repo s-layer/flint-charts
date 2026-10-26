@@ -23,10 +23,23 @@ Or with `uv <https://docs.astral.sh/uv/>`_:
 Quick Start
 -----------
 
-TODO: Add usage examples here.
+Map each result column to the Flint type its ``s_layer`` block declares:
+
+.. code-block:: python
+
+   import pyarrow as pa
+   from s_layer_flint_charts import map_field, semantic_types
+   from s_layer_semantic_formats import SLayerBlock
+
+   block = SLayerBlock.model_validate({"value": {"kind": "currency", "currency": "USD"}})
+   semantic_types({"revenue": map_field(block, pa.float64())})
+   # {"revenue": {"semanticType": "Amount", "unit": "USD"}}
+
+See :doc:`mapping` for the full table.
 
 .. toctree::
    :hidden:
 
+   mapping
    API Reference <autoapi/index>
    Release notes <changelog>
