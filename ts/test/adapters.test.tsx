@@ -64,6 +64,14 @@ describe("assistant-ui", () => {
     expect(calls.map((call) => call.url)).toEqual([chart.data.url]);
   });
 
+  it.each(["cancelled", "error"])("shows nothing for a call that ended %s", (reason) => {
+    const Chart = componentOf();
+    const view = render(
+      <Chart status={{ type: "incomplete", reason } as never} args={{ title: "Revenue" }} />,
+    );
+    expect(view.container.innerHTML).toBe("");
+  });
+
   it("waits for a preliminary result to settle", () => {
     const Chart = componentOf();
     render(<Chart status={{ type: "running" }} args={{}} result={{ ok: true }} isPreliminary />);
