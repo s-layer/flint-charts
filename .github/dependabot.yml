@@ -19,3 +19,13 @@ updates:
       python-uv:
         patterns:
           - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/ts"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      npm:
+        patterns:
+          - "*"

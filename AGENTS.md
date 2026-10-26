@@ -8,6 +8,7 @@ This document provides context for AI assistants (like Claude Code) working on t
 - **Tests**: `tests/` - Pytest test suite with fixtures in conftest.py
 - **Build**: uv + pyproject.toml, uv_build backend
 - **Python**: >=3.11, strict type checking enabled
+- **TypeScript package**: `ts/` holds `@s-layer/flint-charts` (pnpm, TypeScript, Biome, Vitest), released alongside the Python package
 
 ## Quality Gates (Mandatory)
 
@@ -26,6 +27,19 @@ uv run pytest        # Test suite
 ```
 
 Apply formatting: `uv run ruff format`
+
+### TypeScript gates (`ts/`)
+
+```bash
+cd ts
+pnpm install
+pnpm lint       # Biome lint + format check
+pnpm typecheck  # tsc --noEmit
+pnpm test       # Vitest
+pnpm build      # tsc to dist/
+```
+
+Apply formatting: `pnpm format`
 
 ## Code Conventions
 

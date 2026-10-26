@@ -106,9 +106,15 @@ s-layer-flint-charts/
 ├── tests/                       # Test suite
 │   ├── conftest.py             # Shared fixtures
 │   └── __init__.py
+├── ts/                          # @s-layer/flint-charts (TypeScript)
+│   ├── src/                    # Package source
+│   ├── test/                   # Vitest tests
+│   ├── package.json            # pnpm package, scripts and dev dependencies
+│   └── biome.json              # Lint and format configuration
 ├── .github/                     # GitHub configuration
 │   ├── workflows/
 │   │   ├── ci.yml              # CI/CD pipeline
+│   │   ├── ts-quality.yml      # TypeScript gates (Node 22, 24)
 │   │   ├── pr.yml              # PR coverage reporting
 │   │   └── release.yml         # PyPI release pipeline
 │   └── dependabot.yml          # Dependency updates
