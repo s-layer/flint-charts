@@ -2171,7 +2171,7 @@ requires-dist = [
     { name = "pyarrow", specifier = ">=18" },
     { name = "pydantic-ai-slim", marker = "extra == 'pydantic-ai'", specifier = ">=2.0" },
     { name = "s-layer-semantic-formats", specifier = ">=0.1.0,<0.2" },
-    { name = "semolina", git = "https://github.com/s-layer/semolina?rev=f6299983db4935237a0690a5e831ba0eeb85786a" },
+    { name = "semolina", specifier = ">=0.9.0" },
     { name = "starlette", marker = "extra == 'server'", specifier = ">=0.40" },
 ]
 provides-extras = ["server", "validate", "pydantic-ai"]
@@ -2211,11 +2211,15 @@ wheels = [
 
 [[package]]
 name = "semolina"
-version = "0.8.0"
-source = { git = "https://github.com/s-layer/semolina?rev=f6299983db4935237a0690a5e831ba0eeb85786a#f6299983db4935237a0690a5e831ba0eeb85786a" }
+version = "0.9.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "adbc-poolhouse" },
     { name = "s-layer-semantic-formats" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/98/b4/d06cb16c954ab40ad6a6c6b1834286a7483acac5a5dc7f9172d544360648/semolina-0.9.0.tar.gz", hash = "sha256:a9d382a35ebe1ad4fed98a49481e6d0ef33fc73807959920b5566c8efbe08033", size = 243391, upload-time = "2026-10-26T20:20:25.778Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/52/12/cc4f31e53c4cd945c1f2bda9e4ce096b8932c6ac07fd7bfe4954faa7fdeb/semolina-0.9.0-py3-none-any.whl", hash = "sha256:bb2417b01ee3f72a0f8848361b74c341ce3d23b38442d7a3c3152fe2783b6abd", size = 267152, upload-time = "2026-10-26T20:20:24.277Z" },
 ]
 
 [[package]]
