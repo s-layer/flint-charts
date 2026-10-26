@@ -19,15 +19,15 @@
       "data": {
         "values": [
           {
-            "growth": -0.12,
+            "growth": -12.0,
             "region": "EU"
           },
           {
-            "growth": 0.35,
+            "growth": 35.0,
             "region": "US"
           },
           {
-            "growth": 1.8,
+            "growth": 180.0,
             "region": "APAC"
           }
         ]
@@ -38,13 +38,16 @@
       "semantic_types": {
         "growth": {
           "intrinsicDomain": [
-            -0.12,
-            1.8
+            -12.0,
+            180.0
           ],
           "semanticType": "PercentageChange"
         },
         "region": "Region"
       }
+    },
+    "percent_forms": {
+      "growth": "points"
     },
     "problems": []
   },
@@ -113,6 +116,9 @@
         "quarter": "YearQuarter",
         "region": "Region"
       }
+    },
+    "percent_forms": {
+      "margin": "fraction"
     },
     "problems": []
   },
@@ -184,6 +190,7 @@
         "region": "Region"
       }
     },
+    "percent_forms": {},
     "problems": []
   },
   "orders_heatmap_channel_unplaced": {
@@ -290,6 +297,7 @@
         "region": "Region"
       }
     },
+    "percent_forms": {},
     "problems": [
       "channel has 2 values per month and region but is not on any channel; put it on a channel (such as color) or filter it to one value"
     ]
@@ -338,6 +346,7 @@
         }
       }
     },
+    "percent_forms": {},
     "problems": []
   },
   "stacked_area_with_gap": {
@@ -411,6 +420,7 @@
         }
       }
     },
+    "percent_forms": {},
     "problems": []
   },
   "streamgraph_with_gap": {
@@ -484,6 +494,7 @@
         }
       }
     },
+    "percent_forms": {},
     "problems": []
   }
 }

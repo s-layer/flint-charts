@@ -11,7 +11,7 @@ declares instead of what a model guesses.
 | `currency`, non-additive (unit price, average order value) | `Price` | `unit` = ISO code |
 | `count` | `Count` | |
 | `number` | `Number` | `unit` when the block sets one |
-| `percentage` | `Percentage`, or `PercentageChange` once values leave `[0, 1]` | `intrinsicDomain` `[0, 1]`, widened to the values; values sent as fractions |
+| `percentage` | `Percentage`, or `PercentageChange` once values leave `[0, 1]` | `intrinsicDomain` `[0, 1]`, widened to the values; values held as fractions (see below) |
 | `duration` | `Duration` | `unit`: `ms`, `seconds`, `minutes`, `hours` or `days` |
 | `bytes`, `quantity` | `Quantity` | `unit` |
 | `score` | `Score` | `intrinsicDomain` from the block's `range` |
@@ -50,9 +50,12 @@ high)` turns a percentage outside `[0, 1]` into Flint's `PercentageChange`, with
 enough to hold the values. It pivots on zero when the values cross it and stays sequential when
 they don't.
 
-One limit remains in Flint itself: it guesses fractions against 0-100 from the data, and treats
-the column as 0-100 when fewer than 80% of the values are within ±1. A change column that is
-mostly above +100% is therefore formatted as plain numbers.
+Flint also guesses whether a percentage holds fractions or points from the data, whatever its
+domain says: it reads points when fewer than 80% of the values are within ±1
+([flint-chart#154](https://github.com/microsoft/flint-chart/issues/154)). So when a chart is
+assembled, `percent_points(rows, fields)` sends a column Flint would misread (growth mostly
+above +100%) as points, its values and domain multiplied by 100, and Flint labels it correctly.
+The stored rows and the summary the model reads keep the fractions.
 
 Display hints in the block (`decimals`, `compact`, `negative`, boolean labels) have no Flint
 annotation to go to, so they are not passed on.

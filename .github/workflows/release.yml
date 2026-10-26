@@ -30,7 +30,7 @@ jobs:
           enable-cache: true
 
       - name: Sync dependencies
-        run: uv sync --locked --dev
+        run: uv sync --locked --dev --all-extras
 
       - name: Build wheel and sdist
         run: uv build

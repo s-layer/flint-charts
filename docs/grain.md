@@ -12,8 +12,9 @@ and `check_grain` refuses a chart that would merge rows, in words a model can ac
 - Each column is written in its field's value form: a year as `2024`, a quarter as `"2024-Q1"`,
   a month as `"2024-01"`, a day or week as `"2024-01-15"`, a timestamp as ISO 8601. A zoned
   timestamp is bucketed by its local date, so a Tokyo order on 1 February counts in February.
-- A 0-100 percentage is divided by 100. Flint guesses whether percentages run 0-1 or 0-100 from
-  the data, so they always go out as fractions.
+- A 0-100 percentage is divided by 100, so every percentage is held as a fraction. A chart may
+  still send one as points where Flint would misread its fractions (see
+  [the mapping](mapping.md)).
 - Decimals with a fraction become floats. Whole-number decimals (an id, a `HUGEINT` sum) are
   integers. An integer outside ±(2^53 − 1), which a JavaScript number cannot hold exactly,
   makes its column strings rather than numbers that silently change.

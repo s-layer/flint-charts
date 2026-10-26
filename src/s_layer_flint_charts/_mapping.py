@@ -32,6 +32,7 @@ __all__ = [
     "field_display_names",
     "fit_to_values",
     "map_field",
+    "percent_points",
     "semantic_types",
 ]
 
@@ -248,6 +249,68 @@ def fit_to_values(field: FieldType, low: float, high: float) -> FieldType:
     )
 
 
+_PERCENT_TYPES = frozenset({"Percentage", "PercentageChange"})
+
+
+def percent_points(
+    rows: list[dict[str, object]], fields: Mapping[str, FieldType]
+) -> tuple[list[dict[str, object]], dict[str, FieldType], frozenset[str]]:
+    """
+    Send a percentage as percent points when Flint would misread its fractions as points.
+
+    The rows hold percentages as fractions, but Flint 1.0.1 guesses the form from the values
+    (fractions when at least 80% of them lie within ``[-1, 1]``), even with a declared domain.
+    A column it would misread, such as growth mostly past 100%, is multiplied by 100 so that it
+    reads it right, and its domain with it. Remove this once Flint lets the input state the
+    form (https://github.com/microsoft/flint-chart/issues/154).
+
+    Args:
+        rows: The chart's rows, percentages as fractions.
+        fields: Each column's type.
+
+    Returns:
+        The rows and types to send (``rows`` and ``fields`` themselves when nothing changes),
+        and the columns sent as percent points.
+    """
+    points = frozenset(
+        name
+        for name, field in fields.items()
+        if field.semantic_type in _PERCENT_TYPES and _flint_reads_points(rows, name)
+    )
+    if not points:
+        return rows, dict(fields), points
+    sent_fields = dict(fields)
+    for name in points:
+        domain = fields[name].intrinsic_domain
+        if domain is not None:
+            sent_fields[name] = replace(
+                fields[name], intrinsic_domain=(domain[0] * 100, domain[1] * 100)
+            )
+    sent = [
+        {name: _to_points(value) if name in points else value for name, value in row.items()}
+        for row in rows
+    ]
+    return sent, sent_fields, points
+
+
+def _flint_reads_points(rows: list[dict[str, object]], name: str) -> bool:
+    # Mirrors detectPercentageRepresentation in flint-chart.
+    values = [
+        value
+        for row in rows
+        if isinstance(value := row.get(name), int | float) and not isinstance(value, bool)
+    ]
+    if not values:
+        return False
+    return sum(abs(value) <= 1 for value in values) / len(values) < 0.8
+
+
+def _to_points(value: object) -> object:
+    if isinstance(value, int | float) and not isinstance(value, bool):
+        return round(value * 100, 10)
+    return value
+
+
 def semantic_types(fields: Mapping[str, FieldType]) -> dict[str, str | dict[str, object]]:
     """Flint's ``semantic_types`` for a result, keyed by column name."""
     return {name: field.flint_annotation() for name, field in fields.items()}
@@ -281,8 +344,8 @@ def _from_block(
             return FieldType(semantic_type=semantic_type, unit=value.currency)
         case "percentage":
             assert isinstance(value, PercentageValue)
-            # Flint formats a percentage only when a domain is set, and it still guesses 0-1
-            # against 0-100 from the data, so the values always go out as fractions.
+            # Flint formats a percentage only when a domain is set. The rows hold fractions;
+            # percent_points sends points instead where Flint would guess points.
             return FieldType(
                 semantic_type="Percentage",
                 intrinsic_domain=(0, 1),

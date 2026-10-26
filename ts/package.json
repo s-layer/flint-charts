@@ -35,6 +35,7 @@
     "@biomejs/biome": "^2.6.3",
     "@types/node": "^22.20.5",
     "flint-chart": "1.0.1",
+    "flint-chart-mcp": "1.0.1",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"
   }

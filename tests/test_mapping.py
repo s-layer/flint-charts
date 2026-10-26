@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pyarrow as pa
 import pytest
@@ -13,13 +13,17 @@ from hypothesis import strategies as st
 from s_layer_semantic_formats import KINDS, NUMERIC_KINDS, Additivity, SLayerBlock
 
 from s_layer_flint_charts import (
+    CHART_TYPES,
+    FLINT_MCP_VERSION,
     FLINT_SEMANTIC_TYPES,
     FLINT_VERSION,
     FieldType,
     Grain,
+    default_interactions,
     field_display_names,
     fit_to_values,
     map_field,
+    percent_points,
     semantic_types,
 )
 
@@ -493,7 +497,63 @@ def test_a_block_keeps_its_family(mapped_block: SLayerBlock, grain: Grain | None
         assert mapped.value_form == "as_is"
 
 
+def expected_pin() -> dict[str, object]:
+    """The Flint names the Python side emits: semantic types, chart types and their presets."""
+    chart_types: dict[str, list[str]] = {}
+    for chart_type in sorted(CHART_TYPES):
+        spec = default_interactions(chart_type, has_color=True) or {"interactions": []}
+        interactions = cast("list[dict[str, str]]", spec["interactions"])
+        chart_types[chart_type] = [entry["type"] for entry in interactions]
+    return {
+        "flintVersion": FLINT_VERSION,
+        "flintMcpVersion": FLINT_MCP_VERSION,
+        "semanticTypes": sorted(FLINT_SEMANTIC_TYPES),
+        "chartTypes": chart_types,
+    }
+
+
 def test_pin_file_matches_the_mapping() -> None:
-    """The TS test suite checks this file against flint-chart's own registry."""
-    pin = json.loads(PIN_FILE.read_text())
-    assert pin == {"flintVersion": FLINT_VERSION, "semanticTypes": sorted(FLINT_SEMANTIC_TYPES)}
+    """
+    The TS test suite checks this file against flint-chart's own registry.
+
+    Regenerate it with ``uv run python -m tests.test_mapping``.
+    """
+    assert json.loads(PIN_FILE.read_text()) == expected_pin()
+
+
+GROWTH = FieldType(semantic_type="PercentageChange", intrinsic_domain=(0, 3))
+SHARE = FieldType(semantic_type="Percentage", intrinsic_domain=(0, 1))
+
+
+def test_fractions_flint_would_read_as_points_go_out_as_points() -> None:
+    # Flint 1.0.1 guesses percent points when under 80% of the values lie within [-1, 1].
+    rows: list[dict[str, object]] = [{"growth": v} for v in (0.5, 1.8, 2.4, 3.0, 1.2)]
+    sent, fields, points = percent_points(rows, {"growth": GROWTH})
+    assert [row["growth"] for row in sent] == [50.0, 180.0, 240.0, 300.0, 120.0]
+    assert fields["growth"].intrinsic_domain == (0, 300)
+    assert points == frozenset({"growth"})
+
+
+def test_fractions_flint_reads_as_fractions_are_unchanged() -> None:
+    pairs = [(0.2, 0.5), (0.4, 3.0), (0.1, 0.4), (0.1, 0.4), (0.1, 0.4)]
+    rows: list[dict[str, object]] = [{"share": v, "growth": g} for v, g in pairs]
+    fields = {"share": SHARE, "growth": GROWTH}
+    sent, sent_fields, points = percent_points(rows, fields)
+    assert sent is rows
+    assert sent_fields == fields
+    assert points == frozenset()
+
+
+def test_percent_points_skip_nulls_and_other_fields() -> None:
+    rows: list[dict[str, object]] = [
+        {"growth": 2.0, "revenue": 5},
+        {"growth": None, "revenue": 7},
+    ]
+    fields = {"growth": GROWTH, "revenue": FieldType(semantic_type="Amount", unit="USD")}
+    sent, _, points = percent_points(rows, fields)
+    assert sent == [{"growth": 200.0, "revenue": 5}, {"growth": None, "revenue": 7}]
+    assert points == frozenset({"growth"})
+
+
+if __name__ == "__main__":
+    PIN_FILE.write_text(json.dumps(expected_pin(), indent=2) + "\n")
