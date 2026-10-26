@@ -59,15 +59,15 @@ that is only in the tooltip still needs one value per mark. Only the measure is 
 
 ## Stacked areas with gaps
 
-Flint fills a missing point in a stacked area by interpolating between its neighbours, which
-draws sales in a month that had none. When a stacked area is missing points:
+Flint fills a missing point in a stacked area or streamgraph by interpolating between its
+neighbours, which draws sales in a month that had none. When a stacked area is missing points:
 
 - For additive metrics, `check_grain` adds the missing points (each facet, x value and color)
   as zeros. Other dimensions on the added rows are copied from a row with the same x, color or
   facet value. `GrainCheck.rows` is what to draw.
 - Otherwise, or when another dimension has no single source for its value, it sets
-  `stackMode` to `"layered"` in `GrainCheck.chart_properties`, so each area
-  is drawn on its own.
+  `stackMode` to `"layered"` in `GrainCheck.chart_properties`, so each area is drawn on its
+  own. A streamgraph is always stacked, so it is refused instead.
 - When the filled grid would pass the row cap, the chart is refused.
 
 ## Checked against Flint

@@ -62,6 +62,10 @@ Several rows per category is what these charts are for, so the guard does not as
 per mark.
 """
 
+# Stacked areas, which Flint fills between missing points by interpolation. Only the area chart
+# can be layered instead; a streamgraph is always stacked.
+_AREA_CHART_TYPES = frozenset({"Area Chart", "Streamgraph"})
+_ALWAYS_STACKED_CHART_TYPES = frozenset({"Streamgraph"})
 # Channels that describe a mark without drawing a separate one.
 _LABEL_CHANNELS = frozenset({"tooltip", "text", "label", "href"})
 # Channels whose value is summed when bars, areas or slices stack.
@@ -143,10 +147,11 @@ def check_grain(
        stacks a metric that adds up across it: additive, or semi-additive along a dimension
        other than its snapshot one. A metric with unknown additivity is not stacked. Only the
        measure is stacked: ``x`` or ``y``, or ``size`` or ``theta`` for a pie.
-    5. A stacked area has a value for every point (facet, x and color). Missing points of an
-       additive metric are added as zeros, with each other dimension taken from a row with the
-       same x, color or facet; otherwise the areas are layered instead of stacked, since Flint
-       would fill the gaps by interpolation.
+    5. A stacked area or streamgraph has a value for every point (facet, x and color). Missing
+       points of an additive metric are added as zeros, with each other dimension taken from a
+       row with the same x, color or facet; otherwise the areas are layered instead of stacked,
+       since Flint would fill the gaps by interpolation. A streamgraph cannot be layered, so it
+       is refused instead.
 
     Args:
         rows: The rows the chart would draw, from :func:`chart_rows`.
@@ -187,9 +192,9 @@ def check_grain(
     if stacked_metrics and color is not None and _stacks(rows, encoded, metrics, request):
         problems += _stacking_problems(stacked_metrics, color, metrics, request.chart_type)
     out_rows = [dict(row) for row in rows]
-    if not problems and request.chart_type == "Area Chart" and stacked_metrics and color:
+    if not problems and request.chart_type in _AREA_CHART_TYPES and stacked_metrics and color:
         out_rows, chart_properties, densify_problems = _dense_stacked_area(
-            out_rows, encoded, stacked_metrics, metrics, chart_properties, cap
+            out_rows, request.chart_type, encoded, stacked_metrics, metrics, chart_properties, cap
         )
         problems += densify_problems
     return GrainCheck(problems=tuple(problems), rows=out_rows, chart_properties=chart_properties)
@@ -282,7 +287,10 @@ def _stacked_metrics(
     if chart_type in PIE_CHART_TYPES:
         channels = _PIE_STACKED_CHANNELS
     elif chart_type in STACKING_CHART_TYPES:
-        if chart_properties.get("stackMode") == "layered":
+        if (
+            chart_properties.get("stackMode") == "layered"
+            and chart_type not in _ALWAYS_STACKED_CHART_TYPES
+        ):
             return []
         channels = _STACKED_CHANNELS
     else:
@@ -345,6 +353,7 @@ def _stacking_problems(
 
 def _dense_stacked_area(
     rows: list[dict[str, object]],
+    chart_type: str,
     encoded: Mapping[str, str],
     stacked: Sequence[str],
     metrics: Mapping[str, Metric],
@@ -360,9 +369,21 @@ def _dense_stacked_area(
         total *= len(values)
     if total == len(present):
         return rows, chart_properties, []
-    layered = {**chart_properties, "stackMode": "layered"}
+    if chart_type in _ALWAYS_STACKED_CHART_TYPES:
+        not_layerable = [
+            f"a {chart_type} fills missing points by interpolation and cannot be layered, and "
+            f"{' and '.join(stacked)} has gaps that are not zeros; use an Area Chart or a "
+            "Line Chart"
+        ]
+        layered: tuple[list[dict[str, object]], dict[str, object], list[str]] = (
+            rows,
+            chart_properties,
+            not_layerable,
+        )
+    else:
+        layered = (rows, {**chart_properties, "stackMode": "layered"}, [])
     if any(metrics[column].additivity != "additive" for column in stacked):
-        return rows, layered, []
+        return layered
     if total > cap:
         return (
             rows,
@@ -380,7 +401,7 @@ def _dense_stacked_area(
         source = _source(rows, name, keys)
         if source is None:
             # A dimension that no single key decides has no known value at an added point.
-            return rows, layered, []
+            return layered
         sources[name] = source
     filled = list(rows)
     for combo in _product(distinct):

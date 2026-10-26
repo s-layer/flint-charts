@@ -111,6 +111,15 @@ def build_inputs() -> dict[str, dict[str, Any]]:
             ),
             {"revenue": ADDITIVE, "margin": RATIO},
         ),
+        "streamgraph_with_gap": _case(
+            gappy,
+            {"month": MONTH, "region": REGION, "revenue": REVENUE},
+            ChartRequest(
+                chart_type="Streamgraph",
+                encodings={"x": "month", "y": "revenue", "color": "region"},
+            ),
+            {"revenue": ADDITIVE, "margin": RATIO},
+        ),
         "margin_lines_by_quarter": _case(
             by_quarter,
             {"quarter": QUARTER, "region": REGION, "margin": MARGIN},

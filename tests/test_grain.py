@@ -403,3 +403,39 @@ def test_flint_spellings_of_stacking_charts(chart_type: str) -> None:
         encodings={"x": "month", "y": "margin", "size": "margin", "color": "region"},
     )
     assert not check_grain(monthly_by_region("margin"), request, {"margin": RATIO}).ok
+
+
+class TestStreamgraph:
+    """A streamgraph always stacks (centred) and interpolates gaps; Flint has no layered mode."""
+
+    def gappy(self) -> list[dict[str, object]]:
+        return [r for r in monthly_by_region() if (r["month"], r["region"]) != ("2024-02", "US")]
+
+    def request(self, **properties: object) -> ChartRequest:
+        return ChartRequest(
+            chart_type="Streamgraph",
+            encodings={"x": "month", "y": "revenue", "color": "region"},
+            chart_properties=properties,
+        )
+
+    def test_missing_points_of_additive_metric_become_zeros(self) -> None:
+        check = check_grain(self.gappy(), self.request(), {"revenue": ADDITIVE})
+        assert check.ok
+        assert check.rows[-1] == {"month": "2024-02", "region": "US", "revenue": 0}
+
+    def test_gaps_that_cannot_be_zero_refused(self) -> None:
+        metrics = {"revenue": Metric(additivity="semi_additive", non_additive_by=frozenset({"x"}))}
+        check = check_grain(self.gappy(), self.request(), metrics)
+        assert check.problems == (
+            "a Streamgraph fills missing points by interpolation and cannot be layered, and "
+            "revenue has gaps that are not zeros; use an Area Chart or a Line Chart",
+        )
+
+    def test_layered_property_does_not_unstack_it(self) -> None:
+        request = ChartRequest(
+            chart_type="Streamgraph",
+            encodings={"x": "month", "y": "margin", "color": "region"},
+            chart_properties={"stackMode": "layered"},
+        )
+        check = check_grain(monthly_by_region("margin"), request, {"margin": RATIO})
+        assert check.problems[0].startswith("a Streamgraph sums margin across region")

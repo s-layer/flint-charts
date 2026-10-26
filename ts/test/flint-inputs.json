@@ -412,5 +412,78 @@
       }
     },
     "problems": []
+  },
+  "streamgraph_with_gap": {
+    "input": {
+      "chart_spec": {
+        "chartProperties": {},
+        "chartType": "Streamgraph",
+        "encodings": {
+          "color": {
+            "field": "region"
+          },
+          "x": {
+            "field": "month"
+          },
+          "y": {
+            "field": "revenue"
+          }
+        }
+      },
+      "data": {
+        "values": [
+          {
+            "margin": 12.0,
+            "month": "2024-01",
+            "region": "EU",
+            "revenue": 100.0
+          },
+          {
+            "margin": 18.0,
+            "month": "2024-01",
+            "region": "US",
+            "revenue": 80.0
+          },
+          {
+            "margin": 11.5,
+            "month": "2024-02",
+            "region": "EU",
+            "revenue": 120.0
+          },
+          {
+            "margin": 13.0,
+            "month": "2024-03",
+            "region": "EU",
+            "revenue": 130.0
+          },
+          {
+            "margin": 19.5,
+            "month": "2024-03",
+            "region": "US",
+            "revenue": 95.0
+          },
+          {
+            "margin": null,
+            "month": "2024-02",
+            "region": "US",
+            "revenue": 0
+          }
+        ]
+      },
+      "field_display_names": {
+        "month": "Month",
+        "region": "Region",
+        "revenue": "Revenue"
+      },
+      "semantic_types": {
+        "month": "YearMonth",
+        "region": "Region",
+        "revenue": {
+          "semanticType": "Amount",
+          "unit": "USD"
+        }
+      }
+    },
+    "problems": []
   }
 }
