@@ -7,6 +7,7 @@ the rows a chart draws, and refuses charts that would merge rows.
 
 from s_layer_flint_charts._grain import (
     PIE_CHART_TYPES,
+    ROW_MARK_CHART_TYPES,
     STACKING_CHART_TYPES,
     ChartRequest,
     GrainCheck,
@@ -37,6 +38,7 @@ __all__ = [
     "FLINT_SEMANTIC_TYPES",
     "FLINT_VERSION",
     "PIE_CHART_TYPES",
+    "ROW_MARK_CHART_TYPES",
     "STACKING_CHART_TYPES",
     "ChartRequest",
     "ChartRows",

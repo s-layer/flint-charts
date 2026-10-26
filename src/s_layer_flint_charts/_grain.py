@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "PIE_CHART_TYPES",
+    "ROW_MARK_CHART_TYPES",
     "STACKING_CHART_TYPES",
     "ChartRequest",
     "GrainCheck",
@@ -29,11 +30,37 @@ __all__ = [
     "check_grain",
 ]
 
-STACKING_CHART_TYPES: frozenset[str] = frozenset({"Bar Chart", "Stacked Bar Chart", "Area Chart"})
+STACKING_CHART_TYPES: frozenset[str] = frozenset(
+    {"Bar Chart", "Stacked Bar Chart", "Area Chart", "Streamgraph"}
+)
 """Charts that stack their measure across the color field (Vega-Lite stacks bars and areas)."""
 
-PIE_CHART_TYPES: frozenset[str] = frozenset({"Pie Chart", "Donut Chart"})
+PIE_CHART_TYPES: frozenset[str] = frozenset({"Pie Chart", "Donut Chart", "Doughnut Chart"})
 """Charts whose slices add up to a whole: the measure is summed across the color field."""
+
+ROW_MARK_CHART_TYPES: frozenset[str] = frozenset(
+    {
+        "Scatter Plot",
+        "Bubble Chart",
+        "Strip Plot",
+        "Boxplot",
+        "Violin Plot",
+        "Histogram",
+        "Density Plot",
+        "Density Contour",
+        "ECDF Plot",
+        "Ridgeline Plot",
+        "Regression",
+        "Marginal Plot",
+        "Table",
+    }
+)
+"""
+Charts that draw every row as its own mark or summarise a distribution of rows.
+
+Several rows per category is what these charts are for, so the guard does not ask for one row
+per mark.
+"""
 
 # Channels that describe a mark without drawing a separate one.
 _LABEL_CHANNELS = frozenset({"tooltip", "text", "label", "href"})
@@ -107,6 +134,8 @@ def check_grain(
     0. The result has rows.
     1. Every encoded column is in the rows, and no encoding asks Flint to ``aggregate``.
     2. Every dimension is on a channel that draws separate marks, or has one value per mark.
+       Charts in :data:`ROW_MARK_CHART_TYPES` (scatter plots, distributions, tables) skip this
+       rule and the next, since each row is meant to be its own mark.
        Tooltip and text channels only label a mark. Otherwise several rows would share a mark.
     3. No two rows have the same value on every such channel, as happens when a date is drawn
        at a coarser grain than the query returned.
@@ -148,10 +177,11 @@ def check_grain(
         )
 
     placed = _dimensions_on(encoded, metrics, exclude=_LABEL_CHANNELS)
-    labelled = set(_dimensions_on(encoded, metrics, only=_LABEL_CHANNELS))
-    problems += _unplaced_dimension_problems(rows, columns, placed, labelled, metrics)
-    if not problems:
-        problems += _shared_mark_problems(rows, placed)
+    if request.chart_type not in ROW_MARK_CHART_TYPES:
+        labelled = set(_dimensions_on(encoded, metrics, only=_LABEL_CHANNELS))
+        problems += _unplaced_dimension_problems(rows, columns, placed, labelled, metrics)
+        if not problems:
+            problems += _shared_mark_problems(rows, placed)
     stacked_metrics = _stacked_metrics(request, encoded, metrics, chart_properties)
     color = encoded.get("color")
     if stacked_metrics and color is not None and _stacks(rows, encoded, metrics, request):

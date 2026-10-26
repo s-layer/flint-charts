@@ -43,7 +43,11 @@ chart is safe to draw when there are none.
 | A stacked chart only stacks what adds up across its color | margin (a ratio) as bars stacked by region | a Bar Chart sums margin across region, but it does not add up; use a Line Chart or a Grouped Bar Chart, or take color off |
 | | an account balance stacked by snapshot day | it cannot be summed over day |
 
-Stacking charts are bars, stacked bars and areas whenever more than one color shares a bar or
+Scatter plots, distribution charts (box, violin, strip, histogram, density) and tables draw
+every row as its own mark or summarise many rows on purpose, so they skip the two
+one-row-per-mark rules.
+
+Stacking charts are bars, stacked bars, areas and streamgraphs whenever more than one color shares a bar or
 point, and pie and donut charts always. Bars colored by the same column as their x axis do not
 stack. A metric whose additivity is unknown is not stacked, since its sum may be wrong. Setting
 `chartProperties.stackMode` to `"layered"` turns stacking off.

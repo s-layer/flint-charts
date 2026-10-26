@@ -361,3 +361,45 @@ class TestReviewRound1:
             "region has 2 values per month but only labels the marks; put it on a channel "
             "(such as color) or filter it to one value",
         )
+
+
+class TestOneMarkPerRowCharts:
+    """Charts that draw every row as its own mark never merge rows."""
+
+    def test_scatter_with_tooltip_label_allowed(self) -> None:
+        rows = [
+            {"customer": "A", "revenue": 1, "margin": 0.1},
+            {"customer": "B", "revenue": 2, "margin": 0.2},
+        ]
+        request = ChartRequest(
+            chart_type="Scatter Plot",
+            encodings={"x": "revenue", "y": "margin", "tooltip": "customer"},
+        )
+        assert check_grain(rows, request, {"revenue": ADDITIVE, "margin": RATIO}).ok
+
+    def test_scatter_without_label_allowed(self) -> None:
+        rows = [{"revenue": 1, "margin": 0.1}, {"revenue": 1, "margin": 0.1}]
+        request = ChartRequest(chart_type="Scatter Plot", encodings={"x": "revenue", "y": "margin"})
+        assert check_grain(rows, request, {"revenue": ADDITIVE, "margin": RATIO}).ok
+
+    def test_boxplot_of_customers_by_region_allowed(self) -> None:
+        rows = [
+            {"region": r, "customer": c, "revenue": v}
+            for r, c, v in (("EU", "A", 1), ("EU", "B", 2), ("US", "C", 3), ("US", "D", 4))
+        ]
+        request = ChartRequest(chart_type="Boxplot", encodings={"x": "region", "y": "revenue"})
+        assert check_grain(rows, request, {"revenue": ADDITIVE}).ok
+
+    def test_one_mark_per_row_charts_still_need_their_columns(self) -> None:
+        request = ChartRequest(chart_type="Scatter Plot", encodings={"x": "revenue", "y": "cost"})
+        check = check_grain([{"revenue": 1}], request, {"revenue": ADDITIVE, "cost": ADDITIVE})
+        assert check.problems == ("cost is not a column of the result",)
+
+
+@pytest.mark.parametrize("chart_type", ["Doughnut Chart", "Streamgraph"])
+def test_flint_spellings_of_stacking_charts(chart_type: str) -> None:
+    request = ChartRequest(
+        chart_type=chart_type,
+        encodings={"x": "month", "y": "margin", "size": "margin", "color": "region"},
+    )
+    assert not check_grain(monthly_by_region("margin"), request, {"margin": RATIO}).ok
