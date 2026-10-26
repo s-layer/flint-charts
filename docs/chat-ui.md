@@ -66,8 +66,8 @@ checks, and you draw the result with any Flint backend.
 
 Every adapter and `<SLayerChart>` take the same options:
 
-- Any `<FlintChart>` prop but `spec`, such as `width`, `height`, `fit`, `renderer` or
-  `onInteraction`.
+- Any `<FlintChart>` prop but `spec` and `fallback` (use `loading`), such as `width`,
+  `height`, `fit`, `renderer` or `onInteraction`.
 - `requestInit`: options for the rows request. By default it sends cookies to the same origin
   only, which is how the rows route tells conversations apart. Use it to add a header, or
   `credentials: "include"` for a route on another origin.
@@ -75,7 +75,8 @@ Every adapter and `<SLayerChart>` take the same options:
 - `loading`: shown while the rows load. By default, a box with the chart's title.
 - `renderError`: shown in place of a chart that cannot be drawn. By default, a short note.
 
-The adapters also take `name`, for a toolset that registers the tool under another name.
+The CopilotKit adapters also take `name`, for a toolset that registers the tool under another
+name, and `agentId`. In assistant-ui the tool's name is its `defineToolkit` key.
 
 ## What the reader sees when a chart can't be drawn
 
