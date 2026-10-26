@@ -12,6 +12,7 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from s_layer_flint_charts import ChartStore
 from s_layer_flint_charts.pydantic_ai import chart_toolset
+from tests._arrow import table
 from tests._views import Sales, monthly
 
 if TYPE_CHECKING:
@@ -140,4 +141,22 @@ async def test_a_chart_that_merges_rows_is_sent_back_to_the_model() -> None:
     retry = seen[2][-1]
     assert retry.outcome == "retried"
     assert "The chart was not drawn" in str(retry.content)
+    assert "region" in str(retry.content)
+
+
+async def binary_regions(query: Any) -> Any:
+    return table({"REGION": [b"EU", b"US"], "REVENUE": [1.0, 2.0]})
+
+
+async def test_a_column_that_cannot_be_charted_is_sent_back_to_the_model() -> None:
+    model, seen = scripted(
+        {"tool": "query_sales", "args": {"metrics": ["revenue"], "dimensions": ["region"]}}
+    )
+    tools = chart_toolset(
+        [Sales], store=ChartStore(), session_id=conversation_id, fetch=binary_regions
+    )
+    agent = Agent(model, deps_type=Conversation, toolsets=[tools])
+    await agent.run("q", deps=Conversation("a"))
+    retry = seen[1][-1]
+    assert retry.outcome == "retried"
     assert "region" in str(retry.content)

@@ -31,7 +31,11 @@ from semolina.spec import query_spec_schema
 
 from s_layer_flint_charts._charts import CHART_TYPES, show_chart
 from s_layer_flint_charts._query import run_query
-from s_layer_flint_charts._rows import DEFAULT_ROW_CAP
+from s_layer_flint_charts._rows import (
+    DEFAULT_ROW_CAP,
+    DuplicateColumnError,
+    UnsupportedColumnError,
+)
 
 try:
     from pydantic_ai import FunctionToolset, ModelRetry, RunContext, Tool
@@ -143,7 +147,7 @@ def _query_tool(
     async def query(ctx: RunContext[DepsT], **spec: Any) -> dict[str, object]:
         try:
             return await run_query(store.session(session_id(ctx)), view, spec, cap=cap, fetch=fetch)
-        except SemolinaSpecError as error:
+        except (SemolinaSpecError, UnsupportedColumnError, DuplicateColumnError) as error:
             raise ModelRetry(str(error)) from error
 
     about = (view.__doc__ or "").strip()

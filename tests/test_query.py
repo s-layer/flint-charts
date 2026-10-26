@@ -47,6 +47,8 @@ async def test_the_summary_describes_each_column() -> None:
         "name": "ordered_at__month",
         "kind": "dimension",
         "type": "YearMonth",
+        "min": "2024-01",
+        "max": "2024-03",
         "distinct_values": 3,
         "sample_values": ["2024-01", "2024-02", "2024-03"],
     }

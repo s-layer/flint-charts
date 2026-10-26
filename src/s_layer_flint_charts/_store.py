@@ -9,6 +9,8 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
+from s_layer_flint_charts._rows import DEFAULT_ROW_CAP
+
 if TYPE_CHECKING:
     import datetime
     from collections.abc import Callable
@@ -41,13 +43,18 @@ class Column:
 
 @dataclass(frozen=True, kw_only=True)
 class StoredResult:
-    """A query result, converted once into the rows a chart draws."""
+    """
+    A query result, converted once into the rows a chart draws.
+
+    ``cap`` is the most rows a chart of it may draw, the same cap the result was cut at.
+    """
 
     result_id: str
     view: str
     columns: dict[str, Column]
     rows: ChartRows
     queried_at: datetime.datetime
+    cap: int = DEFAULT_ROW_CAP
 
     @property
     def metrics(self) -> dict[str, Metric]:

@@ -243,3 +243,26 @@ async def test_an_unknown_result_asks_for_the_query_again() -> None:
     )
     assert not receipt.ok
     assert receipt.problems == ("there is no result 'r_gone'; run the query again",)
+
+
+def test_a_stacked_area_is_filled_only_up_to_the_results_cap() -> None:
+    # US has no February row, so a stacked area needs 6 points from 5 rows.
+    query = build_query(
+        Sales, {"metrics": ["revenue"], "dimensions": ["ordered_at__month", "region"]}
+    )
+    keep = [True, True, True, False, True, True]
+    gappy = table(
+        {
+            name: [v for v, k in zip(values, keep, strict=True) if k]
+            for name, values in monthly(query).to_pydict().items()
+        }
+    )
+    request: dict[str, Any] = {"chart_type": "Area Chart", "encodings": LINES, "title": "Revenue"}
+    small = store_result(ChartSession(), query, gappy, view="analytics.sales", cap=5)
+    flint_input, problems = assemble_chart(small, **request)
+    assert flint_input is None
+    assert "over the 5-row cap" in problems[0]
+    large = store_result(ChartSession(), query, gappy, view="analytics.sales", cap=6)
+    flint_input, problems = assemble_chart(large, **request)
+    assert problems == ()
+    assert flint_input is not None

@@ -210,6 +210,7 @@ def assemble_chart(
             chart_properties=dict(chart_properties or {}),
         ),
         result.metrics,
+        cap=result.cap,
     )
     if not check.ok:
         return None, check.problems

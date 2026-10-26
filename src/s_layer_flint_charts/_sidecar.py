@@ -158,13 +158,17 @@ class FlintSidecar:
         Ask Flint whether it can draw ``flint_input``, as the Vega-Lite backend would.
 
         Raises:
-            SidecarError: The sidecar is not started, or did not answer with a report.
+            SidecarError: The sidecar is not started, did not answer in time or at all (a
+                stdio sidecar that has exited stays gone), or did not answer with a report.
         """
         if self._session is None:
             raise SidecarError("the Flint sidecar is not started; use `async with FlintSidecar()`")
-        result = await self._session.call_tool(
-            "validate_chart", {**flint_input, "backend": "vegalite"}
-        )
+        try:
+            result = await self._session.call_tool(
+                "validate_chart", {**flint_input, "backend": "vegalite"}
+            )
+        except Exception as error:  # a timeout, or the sidecar gone
+            raise SidecarError(f"the Flint sidecar did not answer: {error}") from error
         texts = [
             text
             for block in result.content

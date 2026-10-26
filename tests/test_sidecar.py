@@ -130,3 +130,17 @@ async def test_a_sidecar_over_http(http_sidecar: str) -> None:
     async with FlintSidecar(url=http_sidecar) as sidecar:
         report = await sidecar.validate(cases["orders_heatmap"]["input"])
     assert report.valid
+
+
+class BrokenSession:
+    async def call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
+        raise TimeoutError("timed out")
+
+
+@pytest.mark.anyio
+async def test_a_transport_failure_is_a_sidecar_error() -> None:
+    sidecar = FlintSidecar()
+    setattr(sidecar, "_session", BrokenSession())  # noqa: B010 - stands in for a dead connection
+    with pytest.raises(SidecarError, match="timed out") as raised:
+        await sidecar.validate({})
+    assert isinstance(raised.value.__cause__, TimeoutError)

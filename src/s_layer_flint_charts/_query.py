@@ -16,7 +16,7 @@ from semolina.spec import build_query
 
 from s_layer_flint_charts._grain import Metric
 from s_layer_flint_charts._mapping import map_field
-from s_layer_flint_charts._rows import DEFAULT_ROW_CAP, chart_rows
+from s_layer_flint_charts._rows import DEFAULT_ROW_CAP, DuplicateColumnError, chart_rows
 from s_layer_flint_charts._store import Column, StoredResult
 
 if TYPE_CHECKING:
@@ -69,6 +69,8 @@ async def run_query(
     Raises:
         semolina.SemolinaSpecError: The spec names a field the view does not have, or is
             otherwise malformed. Its message is meant for whoever wrote the spec.
+        UnsupportedColumnError: The spec asks for a column a chart cannot draw.
+        DuplicateColumnError: Two result columns hold one field.
     """
     query = build_query(model, spec)
     if query.limit_value is None or query.limit_value > cap:
@@ -102,6 +104,7 @@ def store_result(
         columns=columns,
         rows=rows,
         queried_at=datetime.datetime.now(datetime.UTC),
+        cap=cap,
     )
     session.add_result(result)
     return result
@@ -122,8 +125,8 @@ def result_columns(query: Query, table: pa.Table) -> tuple[pa.Table, dict[str, C
         The table with its columns named after the fields, and a :class:`Column` per field.
 
     Raises:
-        ValueError: A column of the result matches no field of the query, or two columns
-            match one field.
+        ValueError: A column of the result matches no field of the query.
+        DuplicateColumnError: Two columns of the result match one field.
     """
     fields: dict[str, Field[Any]] = {
         _name(field): field for field in (*query.selected_dimensions, *query.selected_metrics)
@@ -135,7 +138,7 @@ def result_columns(query: Query, table: pa.Table) -> tuple[pa.Table, dict[str, C
         if match is None:
             raise ValueError(f"result column {name!r} is not a field of the query")
         if match in names:
-            raise ValueError(f"the result has more than one column for {match!r}")
+            raise DuplicateColumnError(f"the result has more than one column for {match!r}")
         names.append(match)
     table = table.rename_columns(names)
     metric_names = {_name(metric) for metric in query.selected_metrics}
@@ -172,13 +175,20 @@ def _base_name(field: Field[Any]) -> str:
     return _name(field.base) if isinstance(field, GrainedDimension) else _name(field)
 
 
-def _range(values: list[object]) -> tuple[object, object] | None:
-    """The smallest and largest of a column of numbers, else ``None``."""
+_ISO_FORMS = frozenset({"year_quarter", "year_month", "date", "datetime"})
+"""Value forms written as ISO strings, which sort as the times they name."""
+
+
+def _range(values: list[object], value_form: str) -> tuple[object, object] | None:
+    """The smallest and largest of a column of numbers or ISO times, else ``None``."""
     numbers = [
         value for value in values if isinstance(value, int | float) and not isinstance(value, bool)
     ]
     if numbers and len(numbers) == len(values):
         return min(numbers), max(numbers)
+    times = [value for value in values if isinstance(value, str)]
+    if value_form in _ISO_FORMS and times and len(times) == len(values):
+        return min(times), max(times)
     return None
 
 
@@ -186,7 +196,7 @@ def summarize(result: StoredResult, *, samples: int = _SAMPLE_ROWS) -> dict[str,
     """
     What the model learns about a result: enough to choose a chart, never the full rows.
 
-    Each column has its kind, Flint type and label; a numeric or temporal column its range; a
+    Each column has its kind, Flint type and label; a numeric or time column its range; a
     dimension its number of distinct values and a few of them. Values are JSON-ready.
     """
     rows = result.rows.rows
@@ -205,7 +215,7 @@ def summarize(result: StoredResult, *, samples: int = _SAMPLE_ROWS) -> dict[str,
         if column.description:
             entry["description"] = column.description
         values = [row[name] for row in rows if row[name] is not None]
-        bounds = _range(values)
+        bounds = _range(values, field_type.value_form)
         if bounds is not None:
             entry["min"], entry["max"] = bounds
         if column.kind == "dimension":
