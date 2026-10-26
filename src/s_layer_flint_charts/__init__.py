@@ -12,6 +12,7 @@ from s_layer_flint_charts._mapping import (
     Grain,
     ValueForm,
     field_display_names,
+    fit_to_values,
     map_field,
     semantic_types,
 )
@@ -23,6 +24,7 @@ __all__ = [
     "Grain",
     "ValueForm",
     "field_display_names",
+    "fit_to_values",
     "map_field",
     "semantic_types",
 ]

@@ -18,6 +18,7 @@ from s_layer_flint_charts import (
     FieldType,
     Grain,
     field_display_names,
+    fit_to_values,
     map_field,
     semantic_types,
 )
@@ -237,6 +238,47 @@ class TestAdditivity:
             {"kind": "currency", "currency": "USD"}, aggregation={"additivity": "additive"}
         )
         assert map_field(stated, ANY, additivity="non_additive").semantic_type == "Amount"
+
+
+class TestFitToValues:
+    PERCENTAGE = FieldType(
+        semantic_type="Percentage", intrinsic_domain=(0, 1), display_name="Margin"
+    )
+
+    @pytest.mark.parametrize(("low", "high"), [(0, 1), (0.12, 0.87), (0, 0), (1, 1)])
+    def test_percentage_inside_unit_range_is_unchanged(self, low: float, high: float) -> None:
+        assert fit_to_values(self.PERCENTAGE, low, high) is self.PERCENTAGE
+
+    @pytest.mark.parametrize(
+        ("low", "high", "domain"),
+        [
+            (-0.12, 1.8, (-0.12, 1.8)),
+            (-0.3, 0.4, (-0.3, 1)),
+            (0.2, 2.5, (0, 2.5)),
+            (-0.5, -0.1, (-0.5, 1)),
+        ],
+    )
+    def test_percentage_outside_unit_range_becomes_a_change(
+        self, low: float, high: float, domain: tuple[float, float]
+    ) -> None:
+        fitted = fit_to_values(self.PERCENTAGE, low, high)
+        assert fitted == FieldType(
+            semantic_type="PercentageChange", intrinsic_domain=domain, display_name="Margin"
+        )
+        assert fitted.intrinsic_domain is not None
+        assert fitted.intrinsic_domain[0] <= low
+        assert fitted.intrinsic_domain[1] >= high
+
+    @pytest.mark.parametrize(
+        "field",
+        [
+            FieldType(semantic_type="Amount", unit="USD"),
+            FieldType(semantic_type="Score", intrinsic_domain=(1, 5)),
+            FieldType(semantic_type="Number"),
+        ],
+    )
+    def test_other_types_are_unchanged(self, field: FieldType) -> None:
+        assert fit_to_values(field, -10, 10) is field
 
 
 class TestFallback:

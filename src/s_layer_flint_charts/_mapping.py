@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Literal
 
 import pyarrow as pa
@@ -30,6 +30,7 @@ __all__ = [
     "Grain",
     "ValueForm",
     "field_display_names",
+    "fit_to_values",
     "map_field",
     "semantic_types",
 ]
@@ -77,6 +78,7 @@ FLINT_SEMANTIC_TYPES: frozenset[str] = frozenset(
         "Longitude",
         "Number",
         "Percentage",
+        "PercentageChange",
         "Price",
         "Quantity",
         "Region",
@@ -88,7 +90,7 @@ FLINT_SEMANTIC_TYPES: frozenset[str] = frozenset(
         "ZipCode",
     }
 )
-"""Every Flint semantic type :func:`map_field` can return. CI checks each is in Flint's registry."""
+"""Every Flint type :func:`map_field` and :func:`fit_to_values` return; CI checks each one."""
 
 _GEO_TYPES: Mapping[str, str] = {
     "country": "Country",
@@ -212,6 +214,40 @@ def map_field(
     )
 
 
+def fit_to_values(field: FieldType, low: float, high: float) -> FieldType:
+    """
+    Adjust a column's type to the range its values actually span.
+
+    Only percentages change. Flint needs ``intrinsicDomain`` to format a percentage, but on a
+    color or size channel it clamps to that domain and pivots a diverging scale on its centre.
+    A percentage that leaves ``[0, 1]`` (growth, a change in margin) becomes Flint's
+    ``PercentageChange``, which pivots on zero when the values cross it, with a domain widened
+    to cover the values. Shares and rates inside ``[0, 1]`` are returned unchanged.
+
+    Args:
+        field: The column's type from :func:`map_field`.
+        low: The smallest value, as written into the rows (after ``value_form``).
+        high: The largest value, as written into the rows.
+
+    Returns:
+        The adjusted :class:`FieldType`, or ``field`` itself when nothing changes.
+
+    Example:
+        .. code-block:: python
+
+            growth = map_field(SLayerBlock.model_validate({"value": {"kind": "percentage"}}), t)
+            fit_to_values(growth, -0.12, 1.8).flint_annotation()
+            # {"semanticType": "PercentageChange", "intrinsicDomain": [-0.12, 1.8]}
+    """
+    if field.semantic_type != "Percentage" or (low >= 0 and high <= 1):
+        return field
+    return replace(
+        field,
+        semantic_type="PercentageChange",
+        intrinsic_domain=(min(0, low), max(1, high)),
+    )
+
+
 def semantic_types(fields: Mapping[str, FieldType]) -> dict[str, str | dict[str, object]]:
     """Flint's ``semantic_types`` for a result, keyed by column name."""
     return {name: field.flint_annotation() for name, field in fields.items()}
@@ -225,15 +261,7 @@ def field_display_names(fields: Mapping[str, FieldType]) -> dict[str, str]:
 
 
 def _with(field: FieldType, *, display_name: str | None, fallback: bool = False) -> FieldType:
-    return FieldType(
-        semantic_type=field.semantic_type,
-        value_form=field.value_form,
-        unit=field.unit,
-        intrinsic_domain=field.intrinsic_domain,
-        sort_order=field.sort_order,
-        display_name=display_name,
-        fallback=fallback,
-    )
+    return replace(field, display_name=display_name, fallback=fallback)
 
 
 def _from_block(

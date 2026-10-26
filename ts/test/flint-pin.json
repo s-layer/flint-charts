@@ -15,6 +15,7 @@
     "Longitude",
     "Number",
     "Percentage",
+    "PercentageChange",
     "Price",
     "Quantity",
     "Region",

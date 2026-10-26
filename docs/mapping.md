@@ -11,7 +11,7 @@ declares instead of what a model guesses.
 | `currency`, non-additive (unit price, average order value) | `Price` | `unit` = ISO code |
 | `count` | `Count` | |
 | `number` | `Number` | `unit` when the block sets one |
-| `percentage` | `Percentage` | `intrinsicDomain` `[0, 1]`; values sent as fractions |
+| `percentage` | `Percentage`, or `PercentageChange` once values leave `[0, 1]` | `intrinsicDomain` `[0, 1]`, widened to the values; values sent as fractions |
 | `duration` | `Duration` | `unit`: `ms`, `seconds`, `minutes`, `hours` or `days` |
 | `bytes`, `quantity` | `Quantity` | `unit` |
 | `score` | `Score` | `intrinsicDomain` from the block's `range` |
@@ -42,11 +42,17 @@ Each `FieldType` also has a `value_form`, which says how the column's values mus
 into the chart's rows for that type: a year as an integer, a quarter as `"2024-Q1"`, a month as
 `"2024-01"`, a 0-100 percentage divided by 100.
 
-Percentages always carry `intrinsicDomain` `[0, 1]`, because Flint only formats a percentage
-as one when a domain is set. That fits shares and rates. A percentage that can leave the range,
-such as growth or a change in margin, still draws on the position axes, since Flint extends an
-axis past the domain to fit the data. On a color or size channel, though, Flint clamps to the
-domain. The row-building step, which sees the values, will handle that case.
+Percentages carry `intrinsicDomain` `[0, 1]`, because Flint only formats a percentage as one
+when a domain is set. On a color or size channel, Flint also clamps to that domain and pivots a
+diverging scale on its centre, 50%. That suits shares and rates, but not growth or a change in
+margin, which can leave the range. So once the values are known, `fit_to_values(field, low,
+high)` turns a percentage outside `[0, 1]` into Flint's `PercentageChange`, with a domain wide
+enough to hold the values. It pivots on zero when the values cross it and stays sequential when
+they don't.
+
+One limit remains in Flint itself: it guesses fractions against 0-100 from the data, and treats
+the column as 0-100 when fewer than 80% of the values are within ±1. A change column that is
+mostly above +100% is therefore formatted as plain numbers.
 
 Display hints in the block (`decimals`, `compact`, `negative`, boolean labels) have no Flint
 annotation to go to, so they are not passed on.
