@@ -3,7 +3,8 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2022", "DOM"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
     "types": ["node"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
@@ -15,5 +16,5 @@
     "sourceMap": true,
     "outDir": "dist"
   },
-  "include": ["src", "test"]
+  "include": ["src", "test", "e2e", "playwright.config.ts", "vitest.config.ts"]
 }

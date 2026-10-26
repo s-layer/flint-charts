@@ -5,6 +5,8 @@
       "**",
       "!dist",
       "!node_modules",
+      "!playwright-report",
+      "!test-results",
       "!pnpm-lock.yaml",
       "!test/flint-inputs.json",
       "!test/flint-pin.json"
