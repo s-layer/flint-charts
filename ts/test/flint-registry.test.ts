@@ -37,12 +37,18 @@ describe("Python mapping pin", () => {
     expect(cyclic).toEqual([]);
   });
 
-  it.each(["Amount", "Price", "Count", "Number", "Percentage", "Duration", "Quantity"])(
-    "%s is drawn as a quantity",
-    (semanticType) => {
-      expect(getRegistryEntry(semanticType).visEncodings).toContain("quantitative");
-    },
-  );
+  it.each([
+    "Amount",
+    "Price",
+    "Count",
+    "Number",
+    "Percentage",
+    "PercentageChange",
+    "Duration",
+    "Quantity",
+  ])("%s is drawn as a quantity", (semanticType) => {
+    expect(getRegistryEntry(semanticType).visEncodings).toContain("quantitative");
+  });
 
   it("splits currency by aggregation role: Amount sums, Price averages", () => {
     expect(getRegistryEntry("Amount").aggRole).toBe("additive");
