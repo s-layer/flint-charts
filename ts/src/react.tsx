@@ -49,8 +49,8 @@ export function useChart(chart: ChartAssemblyInput, options: UseChartOptions = {
     if (options.fetch) load.fetch = options.fetch;
     if (options.requestInit) load.init = options.requestInit;
     setState({ status: "loading" });
-    loadChart(chart, load).then(
-      (loaded) => {
+    loadChart(chart, load)
+      .then((loaded) => {
         if (controller.signal.aborted) return;
         const check = checkChart(loaded);
         setState(
@@ -58,15 +58,14 @@ export function useChart(chart: ChartAssemblyInput, options: UseChartOptions = {
             ? { status: "error", error: new ChartProblemError(check.errors) }
             : { status: "ready", chart: loaded, warnings: check.warnings },
         );
-      },
-      (error: unknown) => {
+      })
+      .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         setState({
           status: "error",
           error: error instanceof Error ? error : new Error(String(error)),
         });
-      },
-    );
+      });
     return () => controller.abort();
   }, [key]);
 
@@ -88,7 +87,8 @@ export interface SLayerChartProps
  * A chart `show_chart` drew: fetches its rows, checks it with Flint, and draws it with Flint's
  * own `<FlintChart>`.
  *
- * Takes every `<FlintChart>` prop but `spec`, such as `width`, `height`, `fit` and `onInteraction`.
+ * Takes every `<FlintChart>` prop but `spec` and `fallback` (`loading` stands in for it), such
+ * as `width`, `height`, `fit` and `onInteraction`.
  */
 export function SLayerChart({
   chart,

@@ -9,6 +9,7 @@
  */
 
 import { defineToolCallRenderer, useRenderTool } from "@copilotkit/react-core/v2";
+import { useRef } from "react";
 import { SHOW_CHART_TOOL, type ShowChartArgs } from "./index.js";
 import { ShowChartToolCall, type ShowChartToolCallProps, type ToolCallStatus } from "./react.js";
 import { showChartArgs } from "./schema.js";
@@ -45,9 +46,14 @@ export function showChartRenderer(options: ShowChartRendererOptions = {}) {
   });
 }
 
-/** Register the `show_chart` renderer from inside a CopilotKit provider. */
+/**
+ * Register the `show_chart` renderer from inside a CopilotKit provider. A call draws with the
+ * options of the hook's latest render, such as a new width or token.
+ */
 export function useShowChartRenderer(options: ShowChartRendererOptions = {}): void {
   const { name = SHOW_CHART_TOOL, agentId, ...props } = options;
+  const latest = useRef(props);
+  latest.current = props;
   useRenderTool(
     {
       name,
@@ -58,7 +64,7 @@ export function useShowChartRenderer(options: ShowChartRendererOptions = {}): vo
         result: string | undefined;
       }) => (
         <ShowChartToolCall
-          {...props}
+          {...latest.current}
           status={STATUS[call.status]}
           args={call.parameters}
           result={call.result}

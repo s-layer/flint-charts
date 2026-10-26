@@ -28,5 +28,7 @@ export function showChartTool(
 }
 
 function status(part: ToolCallMessagePartProps<Partial<ShowChartArgs>, unknown>) {
+  // A call cancelled or failed before its result never gets one: it is finished, with no chart.
+  if (part.status.type === "incomplete") return "complete";
   return part.result !== undefined && !part.isPreliminary ? "complete" : "running";
 }
