@@ -13,6 +13,18 @@ npm install @s-layer/flint-charts vega vega-lite vega-tooltip
 needs React 18 or later. Its components are client components (the built files say
 `"use client"`), so in Next.js render them from client code.
 
+Flint loads each chart library it can draw with on demand, and a production build with Vite 8 follows
+those imports. Without Chart.js installed the build fails on Flint's Chart.js backend
+(`"Chart" is not exported`). Charts here draw with Vega-Lite only, so leave Chart.js out of the
+build:
+
+```ts
+// vite.config.ts
+export default defineConfig({
+  build: { rolldownOptions: { external: ["chart.js"] } },
+});
+```
+
 ## Reach the rows route
 
 Each chart's `data.url` is a path such as `/flint/charts/c_1KZ…/rows`, so the browser asks the

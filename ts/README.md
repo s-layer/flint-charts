@@ -13,7 +13,9 @@ npm install @s-layer/flint-charts vega vega-lite vega-tooltip
 ```
 
 `vega`, `vega-lite` and `vega-tooltip` are the peer dependencies Flint draws with. The React
-entry points need React 18 or later.
+entry points need React 18 or later. A production Vite 8 build also needs `chart.js` marked
+external (or installed); see
+[Charts in a chat UI](https://s-layer.github.io/flint-charts/chat-ui.html).
 
 ## CopilotKit
 
