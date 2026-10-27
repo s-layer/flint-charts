@@ -29,9 +29,9 @@ Map each result column to the Flint type its ``s_layer`` block declares:
 
    import pyarrow as pa
    from s_layer_flint_charts import map_field, semantic_types
-   from s_layer_semantic_formats import SLayerBlock
+   from s_layer_semantic_formats import SemanticFormat
 
-   block = SLayerBlock.model_validate({"value": {"kind": "currency", "currency": "USD"}})
+   block = SemanticFormat.model_validate({"value": {"kind": "currency", "currency": "USD"}})
    semantic_types({"revenue": map_field(block, pa.float64())})
    # {"revenue": {"semanticType": "Amount", "unit": "USD"}}
 

@@ -63,16 +63,16 @@ annotation to go to, so they are not passed on.
 ```python
 import pyarrow as pa
 from s_layer_flint_charts import field_display_names, map_field, semantic_types
-from s_layer_semantic_formats import SLayerBlock
+from s_layer_semantic_formats import SemanticFormat
 
 fields = {
     "revenue": map_field(
-        SLayerBlock.model_validate({"value": {"kind": "currency", "currency": "EUR"}}),
+        SemanticFormat.model_validate({"value": {"kind": "currency", "currency": "EUR"}}),
         pa.decimal128(18, 2),
         label="Revenue",
     ),
     "ordered_at__month": map_field(
-        SLayerBlock.model_validate({"value": {"kind": "date"}, "time": {"grain": "day"}}),
+        SemanticFormat.model_validate({"value": {"kind": "date"}, "time": {"grain": "day"}}),
         pa.date32(),
         grain="month",
     ),

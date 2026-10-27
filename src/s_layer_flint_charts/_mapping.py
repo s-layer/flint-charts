@@ -17,7 +17,7 @@ from s_layer_semantic_formats import (
     PercentageValue,
     QuantityValue,
     ScoreValue,
-    SLayerBlock,
+    SemanticFormat,
 )
 
 if TYPE_CHECKING:
@@ -170,7 +170,7 @@ class FieldType:
 
 
 def map_field(
-    block: SLayerBlock | None,
+    block: SemanticFormat | None,
     arrow_type: pa.DataType,
     *,
     grain: Grain | None = None,
@@ -200,7 +200,9 @@ def map_field(
     Example:
         .. code-block:: python
 
-            block = SLayerBlock.model_validate({"value": {"kind": "currency", "currency": "EUR"}})
+            block = SemanticFormat.model_validate(
+                {"value": {"kind": "currency", "currency": "EUR"}}
+            )
             map_field(block, pa.decimal128(18, 2), label="Revenue").flint_annotation()
             # {"semanticType": "Amount", "unit": "EUR"}
     """
@@ -236,7 +238,7 @@ def fit_to_values(field: FieldType, low: float, high: float) -> FieldType:
     Example:
         .. code-block:: python
 
-            growth = map_field(SLayerBlock.model_validate({"value": {"kind": "percentage"}}), t)
+            growth = map_field(SemanticFormat.model_validate({"value": {"kind": "percentage"}}), t)
             fit_to_values(growth, -0.12, 1.8).flint_annotation()
             # {"semanticType": "PercentageChange", "intrinsicDomain": [-0.12, 1.8]}
     """
@@ -328,7 +330,7 @@ def _with(field: FieldType, *, display_name: str | None, fallback: bool = False)
 
 
 def _from_block(
-    block: SLayerBlock, *, grain: Grain | None, additivity: Additivity | None
+    block: SemanticFormat, *, grain: Grain | None, additivity: Additivity | None
 ) -> FieldType:
     value = block.value
     match block.kind:

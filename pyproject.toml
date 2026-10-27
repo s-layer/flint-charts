@@ -10,8 +10,8 @@ requires-python = ">=3.11"
 dependencies = [
     "orjson>=3.10",
     "pyarrow>=18",
-    "s-layer-semantic-formats>=0.1.0,<0.2",
-    "semolina>=0.9.0",
+    "s-layer-semantic-formats>=0.2.0,<0.3",
+    "semolina>=0.9.1",
 ]
 
 [project.optional-dependencies]
