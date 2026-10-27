@@ -25,6 +25,7 @@ trim = true
 conventional_commits = true
 filter_unconventional = true
 commit_parsers = [
+    { message = "^chore\\(release\\)", skip = true },
     { message = "^docs", skip = true },
     { message = "^wip", skip = true },
     { message = "^feat", group = "Features" },
