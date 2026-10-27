@@ -1,6 +1,6 @@
 [project]
 name = "s-layer-flint-charts"
-version = "0.1.0"
+version = "0.2.0"
 description = "Semantic-layer-aware Flint charts for agents: types, grain guard and show_chart tool"
 readme = "README.md"
 authors = [
