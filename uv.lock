@@ -2170,8 +2170,8 @@ requires-dist = [
     { name = "orjson", specifier = ">=3.10" },
     { name = "pyarrow", specifier = ">=18" },
     { name = "pydantic-ai-slim", marker = "extra == 'pydantic-ai'", specifier = ">=2.0" },
-    { name = "s-layer-semantic-formats", specifier = ">=0.1.0,<0.2" },
-    { name = "semolina", specifier = ">=0.9.0" },
+    { name = "s-layer-semantic-formats", specifier = ">=0.2.0,<0.3" },
+    { name = "semolina", specifier = ">=0.9.1" },
     { name = "starlette", marker = "extra == 'server'", specifier = ">=0.40" },
 ]
 provides-extras = ["server", "validate", "pydantic-ai"]
@@ -2199,27 +2199,27 @@ docs = [
 
 [[package]]
 name = "s-layer-semantic-formats"
-version = "0.1.0"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/56/c6/dabe499e1702fb358f0fcf349511fd50f21235df8251b9a9fca68f04c4a5/s_layer_semantic_formats-0.1.0.tar.gz", hash = "sha256:1c4acd38927bde2d9e069e58517bf2c4dd6d4412645e9c17b3cfd06a729cafb0", size = 20286, upload-time = "2026-10-26T12:45:36.981Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a9/e4/2aeb547f5c98033334555cf05ef36612a9fa34d8e394099f548bf4e1545d/s_layer_semantic_formats-0.2.0.tar.gz", hash = "sha256:663368d1b94f6b53e851e7d869be9ff4224c92459c27b4c3920c7dd5afc27e2a", size = 20318, upload-time = "2026-10-27T08:34:05.195Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fb/20/5c8f10fa80305266860fa67c9f73b3e26d2f7fca66c937f27c3ab82922f6/s_layer_semantic_formats-0.1.0-py3-none-any.whl", hash = "sha256:976beb9d06f1924bd58d10969ab5add72f2906e08b2049c1bf3191f3858b8e1f", size = 23066, upload-time = "2026-10-26T12:45:35.613Z" },
+    { url = "https://files.pythonhosted.org/packages/9c/ad/dd726b0ccc7030e8a7ea8b8161e0cb8d5cbd053f5e13be98c66ae1a9f38e/s_layer_semantic_formats-0.2.0-py3-none-any.whl", hash = "sha256:ca546e99300d587dce9c00f64d226f7a4d0eaa92f8c7792dd4eaf48d61b44ebc", size = 23077, upload-time = "2026-10-27T08:34:04.069Z" },
 ]
 
 [[package]]
 name = "semolina"
-version = "0.9.0"
+version = "0.9.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "adbc-poolhouse" },
     { name = "s-layer-semantic-formats" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/98/b4/d06cb16c954ab40ad6a6c6b1834286a7483acac5a5dc7f9172d544360648/semolina-0.9.0.tar.gz", hash = "sha256:a9d382a35ebe1ad4fed98a49481e6d0ef33fc73807959920b5566c8efbe08033", size = 243391, upload-time = "2026-10-26T20:20:25.778Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/55/24/a49aa336fbd59e2c5112f38569e5856a06d98185613b6c1c4fd86f999194/semolina-0.9.1.tar.gz", hash = "sha256:c6bc36b0e19bd575385dcff47d83600e44e460aca31990a88e99a2010f5ed002", size = 245369, upload-time = "2026-10-27T09:16:17.496Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/52/12/cc4f31e53c4cd945c1f2bda9e4ce096b8932c6ac07fd7bfe4954faa7fdeb/semolina-0.9.0-py3-none-any.whl", hash = "sha256:bb2417b01ee3f72a0f8848361b74c341ce3d23b38442d7a3c3152fe2783b6abd", size = 267152, upload-time = "2026-10-26T20:20:24.277Z" },
+    { url = "https://files.pythonhosted.org/packages/3f/d6/b3cffb5ff4397418467218a7c9c6df14ddc739e3a2846b328a3d10173543/semolina-0.9.1-py3-none-any.whl", hash = "sha256:d034e4110319104fc88b5e66160dfa927c682848cb8cf1786d4f23caa4de6201", size = 269168, upload-time = "2026-10-27T09:16:15.672Z" },
 ]
 
 [[package]]

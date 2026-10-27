@@ -10,7 +10,7 @@ import pyarrow as pa
 import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
-from s_layer_semantic_formats import KINDS, NUMERIC_KINDS, Additivity, SLayerBlock
+from s_layer_semantic_formats import KINDS, NUMERIC_KINDS, Additivity, SemanticFormat
 
 from s_layer_flint_charts import (
     CHART_TYPES,
@@ -30,8 +30,8 @@ from s_layer_flint_charts import (
 PIN_FILE = Path(__file__).parent.parent / "ts" / "test" / "flint-pin.json"
 
 
-def block(value: dict[str, Any], **rest: Any) -> SLayerBlock:
-    return SLayerBlock.model_validate({"value": value, **rest})
+def block(value: dict[str, Any], **rest: Any) -> SemanticFormat:
+    return SemanticFormat.model_validate({"value": value, **rest})
 
 
 ANY = pa.float64()  # the Arrow type is ignored whenever there is a block
@@ -430,7 +430,7 @@ def value_dicts(draw: st.DrawFn, kind: str) -> dict[str, Any]:
 
 
 @st.composite
-def blocks(draw: st.DrawFn) -> SLayerBlock:
+def blocks(draw: st.DrawFn) -> SemanticFormat:
     """Any valid block: every kind, with grain and additivity where the kind allows them."""
     kind = draw(st.sampled_from(KINDS))
     data: dict[str, Any] = {"value": draw(value_dicts(kind))}
@@ -453,7 +453,7 @@ def blocks(draw: st.DrawFn) -> SLayerBlock:
             data["aggregation"] = {"additivity": additivity}
     if draw(st.booleans()):
         data["label"] = draw(WORDS)
-    return SLayerBlock.model_validate(data)
+    return SemanticFormat.model_validate(data)
 
 
 @settings(max_examples=500, suppress_health_check=[HealthCheck.too_slow])
@@ -465,7 +465,7 @@ def blocks(draw: st.DrawFn) -> SLayerBlock:
     aggregation=st.none() | st.sampled_from(["count", "sum", "avg"]),
 )
 def test_every_block_maps_to_a_pinned_flint_type(
-    mapped_block: SLayerBlock,
+    mapped_block: SemanticFormat,
     arrow_type: pa.DataType,
     grain: Grain | None,
     additivity: Additivity | None,
@@ -482,7 +482,7 @@ def test_every_block_maps_to_a_pinned_flint_type(
 
 @settings(max_examples=300)
 @given(mapped_block=blocks(), grain=GRAINS)
-def test_a_block_keeps_its_family(mapped_block: SLayerBlock, grain: Grain | None) -> None:
+def test_a_block_keeps_its_family(mapped_block: SemanticFormat, grain: Grain | None) -> None:
     """Measures stay measures, dimensions stay dimensions, only temporal kinds get a time axis."""
     mapped = map_field(mapped_block, pa.string(), grain=grain)
     temporal = {"Date", "DateTime", "Year", "YearMonth", "YearQuarter"}
