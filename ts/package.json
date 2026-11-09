@@ -85,8 +85,8 @@
   "devDependencies": {
     "@assistant-ui/react": "0.15.32",
     "@biomejs/biome": "^2.6.3",
-    "@copilotkit/react-core": "1.83.0",
-    "@playwright/test": "1.64.1",
+    "@copilotkit/react-core": "1.84.1",
+    "@playwright/test": "1.65.0",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
