@@ -14,7 +14,6 @@ from s_layer_semantic_formats import KINDS, NUMERIC_KINDS, Additivity, SemanticF
 
 from s_layer_flint_charts import (
     CHART_TYPES,
-    FLINT_MCP_VERSION,
     FLINT_SEMANTIC_TYPES,
     FLINT_VERSION,
     FieldType,
@@ -518,7 +517,6 @@ def expected_pin() -> dict[str, object]:
         chart_types[chart_type] = [entry["type"] for entry in interactions]
     return {
         "flintVersion": FLINT_VERSION,
-        "flintMcpVersion": FLINT_MCP_VERSION,
         "semanticTypes": sorted(FLINT_SEMANTIC_TYPES),
         "chartTypes": chart_types,
     }

@@ -19,9 +19,6 @@ server = [
     "backports-zstd>=1.0 ; python_full_version < '3.14'",
     "starlette>=0.40",
 ]
-validate = [
-    "mcp>=2.0",
-]
 pydantic-ai = [
     "pydantic-ai-slim>=2.0",
 ]

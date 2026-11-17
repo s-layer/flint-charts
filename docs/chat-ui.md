@@ -6,24 +6,12 @@ from the URL in its `data`, checks the chart with Flint, and draws it with Flint
 chat: a box with the chart's title while the server draws it, then the chart.
 
 ```bash
-npm install @s-layer/flint-charts vega vega-lite vega-tooltip
+npm install @s-layer/flint-charts
 ```
 
-`vega`, `vega-lite` and `vega-tooltip` are the peer dependencies Flint draws with. The package
-needs React 18 or later. Its components are client components (the built files say
+Flint brings the chart libraries it draws with (Vega-Lite among them). The package needs React
+18 or later. Its components are client components (the built files say
 `"use client"`), so in Next.js render them from client code.
-
-Flint loads each chart library it can draw with on demand, and a production build with Vite 8 follows
-those imports. Without Chart.js installed the build fails on Flint's Chart.js backend
-(`"Chart" is not exported`). Charts here draw with Vega-Lite only, so leave Chart.js out of the
-build:
-
-```ts
-// vite.config.ts
-export default defineConfig({
-  build: { rolldownOptions: { external: ["chart.js"] } },
-});
-```
 
 ## Reach the rows route
 

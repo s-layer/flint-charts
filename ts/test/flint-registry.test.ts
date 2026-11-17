@@ -25,10 +25,6 @@ describe("Python mapping pin", () => {
     expect(version("flint-chart")).toBe(pin.flintVersion);
   });
 
-  it("names the flint-chart-mcp version installed here", () => {
-    expect(version("flint-chart-mcp")).toBe(pin.flintMcpVersion);
-  });
-
   it.each(pin.semanticTypes)("%s is a registered Flint semantic type", (semanticType) => {
     expect(isRegistered(semanticType)).toBe(true);
   });

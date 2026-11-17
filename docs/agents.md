@@ -13,7 +13,7 @@ browser ──GET data.url──────────────────
 Install the extras you need:
 
 ```bash
-pip install 's-layer-flint-charts[pydantic-ai,server,validate]'
+pip install 's-layer-flint-charts[pydantic-ai,server]'
 ```
 
 ## The toolset
@@ -113,15 +113,26 @@ for CopilotKit, assistant-ui and plain React; see [Charts in a chat UI](chat-ui.
 
 ## Checking charts with Flint
 
-`FlintSidecar` runs [`flint-chart-mcp`](https://www.npmjs.com/package/flint-chart-mcp), the
-release this package is pinned to, and asks it to validate every chart as the Vega-Lite backend
-would draw it. Flint errors stop the chart, and so does its `implicit-aggregate` warning, which
-means Flint would merge rows. Other warnings are passed on to the model.
+`FlintSidecar` runs a small Node script that ships with this package and calls Flint's own
+`validateChart` on every chart, as the Vega-Lite backend would draw it, with the `flint-chart`
+release this package is pinned to. The two talk in JSON lines over stdin and stdout. Flint errors
+stop the chart, and so does its `implicit-aggregate` warning, which means Flint would merge rows.
+Other warnings are passed on to the model.
 
-By default the sidecar starts with `npx`, so Node must be installed. To run it as a separate
-service, start `flint-chart-mcp --transport http --disable-file-reference` and connect with
-`FlintSidecar(url="http://flint:8080/mcp")`. Without a validator, charts are checked by the
-grain guard alone.
+By default the sidecar starts with `npx`, which downloads the pinned `flint-chart` the first
+time, so Node must be installed. To use a `flint-chart` you install yourself (an image built
+without network access, say), run the script with `node` and point `FLINT_CHART_DIR` at the
+package:
+
+```python
+from s_layer_flint_charts import FLINT_VERSION, VALIDATOR_SCRIPT, FlintSidecar
+
+# with FLINT_CHART_DIR=/app/node_modules/flint-chart in the environment
+sidecar = FlintSidecar(("node", str(VALIDATOR_SCRIPT), FLINT_VERSION))
+```
+
+The script refuses to start with any other `flint-chart` version. Without a validator, charts are
+checked by the grain guard alone.
 
 ## Limits
 

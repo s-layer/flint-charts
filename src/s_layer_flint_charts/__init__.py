@@ -47,11 +47,10 @@ from s_layer_flint_charts._rows import (
 )
 from s_layer_flint_charts._sidecar import (
     DEFAULT_SIDECAR_COMMAND,
-    FLINT_MCP_VERSION,
+    VALIDATOR_SCRIPT,
     FlintSidecar,
     SidecarError,
     report_from_result,
-    report_from_text,
 )
 from s_layer_flint_charts._store import ChartSession, ChartStore, Column, StoredChart, StoredResult
 
@@ -59,7 +58,6 @@ __all__ = [
     "CHART_TYPES",
     "DEFAULT_ROW_CAP",
     "DEFAULT_SIDECAR_COMMAND",
-    "FLINT_MCP_VERSION",
     "FLINT_SEMANTIC_TYPES",
     "FLINT_VERSION",
     "PIE_CHART_TYPES",
@@ -83,6 +81,7 @@ __all__ = [
     "StoredChart",
     "StoredResult",
     "UnsupportedColumnError",
+    "VALIDATOR_SCRIPT",
     "ValidationReport",
     "ValueForm",
     "assemble_chart",
@@ -94,7 +93,6 @@ __all__ = [
     "fit_to_values",
     "map_field",
     "report_from_result",
-    "report_from_text",
     "result_columns",
     "run_query",
     "semantic_types",
