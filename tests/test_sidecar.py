@@ -341,12 +341,15 @@ async def test_stopping_a_stuck_sidecar_stops_its_children(tmp_path: Path) -> No
         async with FlintSidecar(("sh", "-c", wrapper)) as sidecar:
             assert sidecar.version is not None
             pid = int(sidecar.version)
-    status = Path(f"/proc/{pid}/status")
-    if status.exists():  # reparented children linger as zombies until init reaps them
-        assert "State:\tZ" in status.read_text()
-    else:
+    # A reparented child lingers as a zombie until init reaps it, which can happen at any moment,
+    # so read its state once: gone or a zombie both mean it was stopped.
+    try:
+        state = Path(f"/proc/{pid}/status").read_text()
+    except FileNotFoundError:
         with pytest.raises(ProcessLookupError):
             os.kill(pid, 0)
+    else:
+        assert "State:\tZ" in state
 
 
 @pytest.mark.anyio
