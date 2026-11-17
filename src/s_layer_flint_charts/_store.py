@@ -72,7 +72,7 @@ class StoredChart:
     The rows one chart draws, for the browser to fetch by the chart's ``data.url``.
 
     They are kept per chart rather than per result: the grain guard may add zeros to a stacked
-    area, and a percentage may go out as points. ``rows`` is the JSON array the validator saw.
+    area. ``rows`` is the JSON array the validator saw.
     """
 
     chart_id: str

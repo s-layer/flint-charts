@@ -24,7 +24,6 @@ from s_layer_flint_charts import (
     chart_rows,
     check_grain,
     field_display_names,
-    percent_points,
     semantic_types,
 )
 from tests._arrow import table, where
@@ -42,7 +41,10 @@ REGION = FieldType(semantic_type="Region", display_name="Region")
 CHANNEL = FieldType(semantic_type="Category")
 REVENUE = FieldType(semantic_type="Amount", unit="USD", display_name="Revenue")
 MARGIN = FieldType(
-    semantic_type="Percentage", intrinsic_domain=(0, 1), value_form="percent_to_fraction"
+    semantic_type="Percentage",
+    intrinsic_domain=(0, 1),
+    value_form="percent_to_fraction",
+    percent_scale="fraction",
 )
 ORDERS = FieldType(semantic_type="Count")
 
@@ -58,11 +60,10 @@ def _case(
 ) -> dict[str, Any]:
     result = chart_rows(table, fields)
     check = check_grain(result.rows, request, metrics)
-    values, fields, points = percent_points(check.rows, result.fields)
     flint_input = {
-        "data": {"values": orjson.loads(orjson.dumps(values))},
-        "semantic_types": semantic_types(fields),
-        "field_display_names": field_display_names(fields),
+        "data": {"values": orjson.loads(orjson.dumps(check.rows))},
+        "semantic_types": semantic_types(result.fields),
+        "field_display_names": field_display_names(result.fields),
         "chart_spec": {
             "chartType": request.chart_type,
             "encodings": {
@@ -72,12 +73,16 @@ def _case(
             "chartProperties": check.chart_properties,
         },
     }
-    percent_forms = {
-        name: "points" if name in points else "fraction"
-        for name, field in fields.items()
+    percent_fields = sorted(
+        name
+        for name, field in result.fields.items()
         if field.semantic_type in {"Percentage", "PercentageChange"}
+    )
+    return {
+        "input": flint_input,
+        "problems": list(check.problems),
+        "percent_fields": percent_fields,
     }
-    return {"input": flint_input, "problems": list(check.problems), "percent_forms": percent_forms}
 
 
 def build_inputs() -> dict[str, dict[str, Any]]:
@@ -183,9 +188,14 @@ def test_inputs_are_current() -> None:
     )
 
 
-def test_cases_cover_both_percent_forms() -> None:
-    forms = {form for case in build_inputs().values() for form in case["percent_forms"].values()}
-    assert forms == {"fraction", "points"}
+def test_cases_cover_a_share_and_a_change() -> None:
+    # The Vitest suite checks Flint reads both as fractions, the change only because it is told.
+    types = {
+        case["input"]["semantic_types"][name]["semanticType"]
+        for case in build_inputs().values()
+        for name in case["percent_fields"]
+    }
+    assert types == {"Percentage", "PercentageChange"}
 
 
 def test_cases_cover_both_verdicts() -> None:

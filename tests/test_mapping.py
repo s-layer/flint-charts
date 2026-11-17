@@ -23,7 +23,6 @@ from s_layer_flint_charts import (
     field_display_names,
     fit_to_values,
     map_field,
-    percent_points,
     semantic_types,
 )
 
@@ -78,7 +77,9 @@ class TestBlockMapping:
             pytest.param(
                 {"kind": "percentage"},
                 {},
-                FieldType(semantic_type="Percentage", intrinsic_domain=(0, 1)),
+                FieldType(
+                    semantic_type="Percentage", intrinsic_domain=(0, 1), percent_scale="fraction"
+                ),
                 id="percentage-fraction",
             ),
             pytest.param(
@@ -88,6 +89,7 @@ class TestBlockMapping:
                     semantic_type="Percentage",
                     intrinsic_domain=(0, 1),
                     value_form="percent_to_fraction",
+                    percent_scale="fraction",
                 ),
                 id="percentage-percent-sent-as-fraction",
             ),
@@ -246,7 +248,10 @@ class TestAdditivity:
 
 class TestFitToValues:
     PERCENTAGE = FieldType(
-        semantic_type="Percentage", intrinsic_domain=(0, 1), display_name="Margin"
+        semantic_type="Percentage",
+        intrinsic_domain=(0, 1),
+        percent_scale="fraction",
+        display_name="Margin",
     )
 
     @pytest.mark.parametrize(("low", "high"), [(0, 1), (0.12, 0.87), (0, 0), (1, 1)])
@@ -267,7 +272,10 @@ class TestFitToValues:
     ) -> None:
         fitted = fit_to_values(self.PERCENTAGE, low, high)
         assert fitted == FieldType(
-            semantic_type="PercentageChange", intrinsic_domain=domain, display_name="Margin"
+            semantic_type="PercentageChange",
+            intrinsic_domain=domain,
+            percent_scale="fraction",
+            display_name="Margin",
         )
         assert fitted.intrinsic_domain is not None
         assert fitted.intrinsic_domain[0] <= low
@@ -355,7 +363,11 @@ class TestFlintInput:
         }
         assert semantic_types(fields) == {
             "revenue": {"semanticType": "Amount", "unit": "USD"},
-            "margin": {"semanticType": "Percentage", "intrinsicDomain": [0, 1]},
+            "margin": {
+                "semanticType": "Percentage",
+                "intrinsicDomain": [0, 1],
+                "percentScale": "fraction",
+            },
             "rating": {"semanticType": "Score", "intrinsicDomain": [1, 5]},
             "size": {"semanticType": "Category", "sortOrder": ["S", "M", "L"]},
             "orders": "Count",
@@ -521,38 +533,30 @@ def test_pin_file_matches_the_mapping() -> None:
     assert json.loads(PIN_FILE.read_text()) == expected_pin()
 
 
-GROWTH = FieldType(semantic_type="PercentageChange", intrinsic_domain=(0, 3))
-SHARE = FieldType(semantic_type="Percentage", intrinsic_domain=(0, 1))
+@settings(max_examples=300)
+@given(
+    scale=st.none() | st.sampled_from(["fraction", "percent"]),
+    low=st.floats(-1e4, 1e4, allow_nan=False),
+    span=st.floats(0, 1e4, allow_nan=False),
+)
+def test_a_percentage_always_states_it_holds_fractions(
+    scale: str | None, low: float, span: float
+) -> None:
+    """
+    The rows hold fractions whatever the block's scale, and Flint is told so at any range.
 
-
-def test_fractions_flint_would_read_as_points_go_out_as_points() -> None:
-    # Flint 1.0.1 guesses percent points when under 80% of the values lie within [-1, 1].
-    rows: list[dict[str, object]] = [{"growth": v} for v in (0.5, 1.8, 2.4, 3.0, 1.2)]
-    sent, fields, points = percent_points(rows, {"growth": GROWTH})
-    assert [row["growth"] for row in sent] == [50.0, 180.0, 240.0, 300.0, 120.0]
-    assert fields["growth"].intrinsic_domain == (0, 300)
-    assert points == frozenset({"growth"})
-
-
-def test_fractions_flint_reads_as_fractions_are_unchanged() -> None:
-    pairs = [(0.2, 0.5), (0.4, 3.0), (0.1, 0.4), (0.1, 0.4), (0.1, 0.4)]
-    rows: list[dict[str, object]] = [{"share": v, "growth": g} for v, g in pairs]
-    fields = {"share": SHARE, "growth": GROWTH}
-    sent, sent_fields, points = percent_points(rows, fields)
-    assert sent is rows
-    assert sent_fields == fields
-    assert points == frozenset()
-
-
-def test_percent_points_skip_nulls_and_other_fields() -> None:
-    rows: list[dict[str, object]] = [
-        {"growth": 2.0, "revenue": 5},
-        {"growth": None, "revenue": 7},
-    ]
-    fields = {"growth": GROWTH, "revenue": FieldType(semantic_type="Amount", unit="USD")}
-    sent, _, points = percent_points(rows, fields)
-    assert sent == [{"growth": 200.0, "revenue": 5}, {"growth": None, "revenue": 7}]
-    assert points == frozenset({"growth"})
+    Without ``percentScale`` Flint 1.1 guesses from the values, and growth mostly past 100% reads
+    as percent points (flint-chart#154); ``ts/test/percentage.test.ts`` checks Flint's side.
+    """
+    value: dict[str, Any] = {"kind": "percentage"}
+    if scale is not None:
+        value["scale"] = scale
+    mapped = map_field(SemanticFormat.model_validate({"value": value}), pa.float64())
+    fitted = fit_to_values(mapped, low, low + span)
+    annotation = fitted.flint_annotation()
+    assert isinstance(annotation, dict)
+    assert annotation["percentScale"] == "fraction"
+    assert annotation["semanticType"] in {"Percentage", "PercentageChange"}
 
 
 if __name__ == "__main__":

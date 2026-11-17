@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Protocol, cast
 import orjson
 
 from s_layer_flint_charts._grain import ChartRequest, check_grain
-from s_layer_flint_charts._mapping import field_display_names, percent_points, semantic_types
+from s_layer_flint_charts._mapping import field_display_names, semantic_types
 from s_layer_flint_charts._store import StoredChart
 
 if TYPE_CHECKING:
@@ -215,9 +215,8 @@ def assemble_chart(
     if not check.ok:
         return None, check.problems
 
-    # The types fitted to the values (a percentage past [0, 1] is a PercentageChange), and
-    # percentages Flint would misread as points sent as points.
-    values, fields, _ = percent_points(check.rows, result.rows.fields)
+    # The types fitted to the values (a percentage past [0, 1] is a PercentageChange).
+    fields = result.rows.fields
     chart_spec: dict[str, object] = {
         "chartType": chart_type,
         "title": title,
@@ -229,7 +228,7 @@ def assemble_chart(
     if check.chart_properties:
         chart_spec["chartProperties"] = check.chart_properties
     flint_input: dict[str, object] = {
-        "data": {"values": values},
+        "data": {"values": check.rows},
         "semantic_types": semantic_types(fields),
         "field_display_names": field_display_names(fields),
         "chart_spec": chart_spec,

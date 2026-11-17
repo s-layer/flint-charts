@@ -103,8 +103,7 @@ or gzip as the browser accepts, and 404 for an unknown, expired or foreign chart
 the routes elsewhere, pass the same prefix as `url_prefix=` to `chart_toolset`.
 
 The rows are kept per chart rather than per result, because a chart may draw different rows from
-its result: the grain guard can add zeros to a stacked area, and a percentage may go out as
-points.
+its result: the grain guard can add zeros to a stacked area.
 
 ## Drawing the chart
 

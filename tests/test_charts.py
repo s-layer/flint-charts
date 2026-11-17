@@ -61,7 +61,11 @@ def test_a_chart_is_assembled_from_the_result() -> None:
         "ordered_at__month": "YearMonth",
         "region": "Category",
         "revenue": {"semanticType": "Amount", "unit": "USD"},
-        "margin": {"semanticType": "Percentage", "intrinsicDomain": [0, 1]},
+        "margin": {
+            "semanticType": "Percentage",
+            "intrinsicDomain": [0, 1],
+            "percentScale": "fraction",
+        },
     }
     assert flint_input["field_display_names"] == {"region": "Region", "revenue": "Revenue"}
     assert flint_input["chart_spec"] == {
@@ -121,7 +125,8 @@ def test_a_capped_result_is_never_charted() -> None:
     assert "was cut" in problems[0]
 
 
-def test_a_percentage_flint_would_misread_goes_out_as_points() -> None:
+def test_growth_mostly_past_100_percent_goes_out_as_stated_fractions() -> None:
+    # Flint used to read these as percent points (2.4 as "2.4%"); percentScale settles it.
     query = build_query(Sales, {"metrics": ["margin"], "dimensions": ["region"]})
     growth = table({"region": ["EU", "US", "APAC"], "margin": [-12.0, 150.0, 240.0]})
     result = store_result(ChartSession(), query, growth, view="analytics.sales")
@@ -130,14 +135,13 @@ def test_a_percentage_flint_would_misread_goes_out_as_points() -> None:
     )
     assert flint_input is not None
     values: Any = flint_input["data"]
-    assert [row["margin"] for row in values["values"]] == [-12.0, 150.0, 240.0]
+    assert [row["margin"] for row in values["values"]] == [-0.12, 1.5, 2.4]
     types: Any = flint_input["semantic_types"]
     assert types["margin"] == {
         "semanticType": "PercentageChange",
-        "intrinsicDomain": [-12.0, 240.0],
+        "intrinsicDomain": [-0.12, 2.4],
+        "percentScale": "fraction",
     }
-    # The stored rows keep the fractions the summary showed.
-    assert [row["margin"] for row in result.rows.rows] == [-0.12, 1.5, 2.4]
 
 
 @pytest.mark.parametrize(

@@ -35,7 +35,6 @@ from s_layer_flint_charts._mapping import (
     field_display_names,
     fit_to_values,
     map_field,
-    percent_points,
     semantic_types,
 )
 from s_layer_flint_charts._query import Fetch, result_columns, run_query, store_result, summarize
@@ -94,7 +93,6 @@ __all__ = [
     "field_display_names",
     "fit_to_values",
     "map_field",
-    "percent_points",
     "report_from_result",
     "report_from_text",
     "result_columns",
