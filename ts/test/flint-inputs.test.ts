@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
 type Case = {
   input: ChartAssemblyInput;
   problems: string[];
-  percent_forms: Record<string, "fraction" | "points">;
+  percent_fields: string[];
 };
 const cases: Record<string, Case> = JSON.parse(
   readFileSync(new URL("./flint-inputs.json", import.meta.url), "utf8"),
@@ -49,29 +49,37 @@ describe("charts the grain guard refuses", () => {
   });
 });
 
-// Flint guesses whether a percentage holds fractions or points from its values; the server
-// sends each one in the form Flint will read it as (percent_points in _mapping.py).
+// The rows hold percentages as fractions and the annotation says so (percentScale). Flint reads
+// them as fractions, including a column it would otherwise guess was percent points.
 const percentFields = Object.entries(cases).flatMap(([name, c]) =>
-  Object.entries(c.percent_forms).map(
-    ([field, form]) => [`${name}.${field}`, c, field, form] as const,
-  ),
+  c.percent_fields.map((field) => [`${name}.${field}`, c, field] as const),
 );
 
+const tooltip = (c: Case, field: string, annotation = c.input.semantic_types?.[field]) => {
+  const normalized = normalizeAnnotation(annotation);
+  const values = (c.input.data.values as Record<string, unknown>[]).map((row) => row[field]);
+  return resolveFormat(normalized.semanticType, normalized, values).tooltipFormat;
+};
+
 describe("percentages", () => {
-  it("cover both forms", () => {
-    expect(new Set(percentFields.map(([, , , form]) => form))).toEqual(
-      new Set(["fraction", "points"]),
-    );
+  it("state that they hold fractions", () => {
+    expect(percentFields.length).toBeGreaterThan(0);
+    for (const [, c, field] of percentFields) {
+      expect(normalizeAnnotation(c.input.semantic_types?.[field]).percentScale).toBe("fraction");
+    }
   });
 
-  it.each(percentFields)("%s is read in the form it is sent", (_name, c, field, form) => {
-    const annotation = normalizeAnnotation(c.input.semantic_types?.[field]);
-    const values = (c.input.data.values as Record<string, unknown>[]).map((row) => row[field]);
-    const { tooltipFormat } = resolveFormat(annotation.semanticType, annotation, values);
-    if (form === "points") {
-      expect(tooltipFormat?.suffix).toBe("%");
-    } else {
-      expect(tooltipFormat?.pattern).toMatch(/%$/);
-    }
+  it.each(percentFields)("%s is read as fractions", (_name, c, field) => {
+    const format = tooltip(c, field);
+    expect(format?.pattern).toMatch(/%$/);
+    expect(format?.suffix).toBeUndefined();
+  });
+
+  it("include one Flint would read as percent points if not told", () => {
+    const misread = percentFields.filter(([, c, field]) => {
+      const { percentScale: _, ...unstated } = normalizeAnnotation(c.input.semantic_types?.[field]);
+      return tooltip(c, field, unstated)?.suffix === "%";
+    });
+    expect(misread.map(([name]) => name)).toContain("growth_bars.growth");
   });
 });

@@ -39,7 +39,7 @@ uv run pytest        # Tests
 # Install dependencies, with every extra
 uv sync --dev --all-extras
 
-# The sidecar tests run flint-chart-mcp from ts/node_modules
+# The sidecar tests run Flint's validateChart from ts/node_modules
 pnpm --dir ts install
 
 # Install git hooks

@@ -241,3 +241,12 @@ Refer to official documentation:
 - [basedpyright](https://github.com/detachhead/basedpyright)
 - [ruff](https://docs.astral.sh/ruff/)
 - [pytest](https://docs.pytest.org/)
+
+## The Flint version
+
+One `flint-chart` release is pinned exactly in two manifests:
+`src/s_layer_flint_charts/node/package.json`, which ships in the wheel and is where
+`FLINT_VERSION` (the sidecar's `npx -p flint-chart@…` and the mapping) is read from, and
+`ts/package.json`. Dependabot's `flint` group bumps both in one pull request, so CI runs every
+test against the new release; a test fails if the two ever differ. To bump by hand, change both,
+then run `pnpm --dir ts install`.

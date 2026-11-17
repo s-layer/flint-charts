@@ -12,7 +12,7 @@ user_personas:
       - "CopilotKit or assistant-ui: providers, chats and tool-call renderers"
       - "fetch, cookies and same-origin requests"
     never_assume:
-      - "What Flint is, and that it needs vega, vega-lite and vega-tooltip to draw"
+      - "What Flint is, and that it brings the chart libraries it draws with"
       - "What the show_chart tool is and the shape of its result"
       - "That a chart's rows live on the server behind data.url and expire"
       - "What the grain guard and implicit-aggregate mean"
@@ -44,7 +44,7 @@ user_personas:
       - "What Flint is and what a Flint input holds"
       - "Why the rows stay on the server and how the browser fetches them"
       - "What the grain guard refuses and why"
-      - "What the flint-chart-mcp sidecar is and that it needs Node"
+      - "What the Flint sidecar is (a Node script running validateChart) and that it needs Node"
       - "How S-LAYER semantic formats map to Flint semantic types"
     domain_context: >-
       Builds the backend of an analytics agent over semantic views and wants the model

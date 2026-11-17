@@ -42,20 +42,18 @@ Each `FieldType` also has a `value_form`, which says how the column's values mus
 into the chart's rows for that type: a year as an integer, a quarter as `"2024-Q1"`, a month as
 `"2024-01"`, a 0-100 percentage divided by 100.
 
-Percentages carry `intrinsicDomain` `[0, 1]`, because Flint only formats a percentage as one
-when a domain is set. On a color or size channel, Flint also clamps to that domain and pivots a
+Percentages carry `percentScale: "fraction"`, since the rows always hold fractions, and
+`intrinsicDomain` `[0, 1]`. On a color or size channel, Flint clamps to that domain and pivots a
 diverging scale on its centre, 50%. That suits shares and rates, but not growth or a change in
 margin, which can leave the range. So once the values are known, `fit_to_values(field, low,
 high)` turns a percentage outside `[0, 1]` into Flint's `PercentageChange`, with a domain wide
 enough to hold the values. It pivots on zero when the values cross it and stays sequential when
 they don't.
 
-Flint also guesses whether a percentage holds fractions or points from the data, whatever its
-domain says: it reads points when fewer than 80% of the values are within ±1
-([flint-chart#154](https://github.com/microsoft/flint-chart/issues/154)). So when a chart is
-assembled, `percent_points(rows, fields)` sends a column Flint would misread (growth mostly
-above +100%) as points, its values and domain multiplied by 100, and Flint labels it correctly.
-The stored rows and the summary the model reads keep the fractions.
+Without `percentScale`, Flint would guess fractions or points from the values whenever the
+domain doesn't settle it, and read growth mostly above +100% as points
+([flint-chart#154](https://github.com/microsoft/flint-chart/issues/154), fixed in Flint 1.1.0).
+Stating the scale keeps a column formatted the same way whichever rows a query returns.
 
 Display hints in the block (`decimals`, `compact`, `negative`, boolean labels) have no Flint
 annotation to go to, so they are not passed on.

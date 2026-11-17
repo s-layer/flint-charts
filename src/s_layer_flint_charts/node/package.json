@@ -1,0 +1,9 @@
+{
+  "name": "s-layer-flint-charts-validator",
+  "private": true,
+  "description": "The flint-chart release FlintSidecar validates with. FLINT_VERSION is read from here; Dependabot bumps it together with ts/package.json.",
+  "type": "module",
+  "dependencies": {
+    "flint-chart": "1.1.0"
+  }
+}

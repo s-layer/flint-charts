@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
 import pyarrow as pa
@@ -32,12 +34,18 @@ __all__ = [
     "field_display_names",
     "fit_to_values",
     "map_field",
-    "percent_points",
     "semantic_types",
 ]
 
-FLINT_VERSION = "1.0.1"
-"""The flint-chart release the mapping was written and checked against."""
+FLINT_VERSION: str = json.loads(
+    (Path(__file__).parent / "node" / "package.json").read_text(encoding="utf-8")
+)["dependencies"]["flint-chart"]
+"""
+The flint-chart release the mapping was written and checked against.
+
+Read from ``node/package.json`` in this package, which Dependabot bumps together with
+``ts/package.json``; CI checks the two agree and are exact versions.
+"""
 
 Grain = Literal["second", "minute", "hour", "day", "week", "month", "quarter", "year"]
 """A time grain, as the vocabulary's ``time.grain`` and semolina's ``.grain()`` name them."""
@@ -140,6 +148,7 @@ class FieldType:
     unit: str | None = None
     intrinsic_domain: tuple[float, float] | None = None
     sort_order: tuple[str, ...] | None = None
+    percent_scale: Literal["fraction", "percent"] | None = None
     display_name: str | None = None
     fallback: bool = False
 
@@ -164,6 +173,8 @@ class FieldType:
             annotation["intrinsicDomain"] = list(self.intrinsic_domain)
         if self.sort_order is not None:
             annotation["sortOrder"] = list(self.sort_order)
+        if self.percent_scale is not None:
+            annotation["percentScale"] = self.percent_scale
         if not annotation:
             return self.semantic_type
         return {"semanticType": self.semantic_type, **annotation}
@@ -221,8 +232,8 @@ def fit_to_values(field: FieldType, low: float, high: float) -> FieldType:
     """
     Adjust a column's type to the range its values actually span.
 
-    Only percentages change. Flint needs ``intrinsicDomain`` to format a percentage, but on a
-    color or size channel it clamps to that domain and pivots a diverging scale on its centre.
+    Only percentages change. On a color or size channel Flint clamps a percentage to its
+    ``intrinsicDomain`` and pivots a diverging scale on the domain's centre.
     A percentage that leaves ``[0, 1]`` (growth, a change in margin) becomes Flint's
     ``PercentageChange``, which pivots on zero when the values cross it, with a domain widened
     to cover the values. Shares and rates inside ``[0, 1]`` are returned unchanged.
@@ -240,7 +251,8 @@ def fit_to_values(field: FieldType, low: float, high: float) -> FieldType:
 
             growth = map_field(SemanticFormat.model_validate({"value": {"kind": "percentage"}}), t)
             fit_to_values(growth, -0.12, 1.8).flint_annotation()
-            # {"semanticType": "PercentageChange", "intrinsicDomain": [-0.12, 1.8]}
+            # {"semanticType": "PercentageChange", "intrinsicDomain": [-0.12, 1.8],
+            #  "percentScale": "fraction"}
     """
     if field.semantic_type != "Percentage" or (low >= 0 and high <= 1):
         return field
@@ -249,68 +261,6 @@ def fit_to_values(field: FieldType, low: float, high: float) -> FieldType:
         semantic_type="PercentageChange",
         intrinsic_domain=(min(0, low), max(1, high)),
     )
-
-
-_PERCENT_TYPES = frozenset({"Percentage", "PercentageChange"})
-
-
-def percent_points(
-    rows: list[dict[str, object]], fields: Mapping[str, FieldType]
-) -> tuple[list[dict[str, object]], dict[str, FieldType], frozenset[str]]:
-    """
-    Send a percentage as percent points when Flint would misread its fractions as points.
-
-    The rows hold percentages as fractions, but Flint 1.0.1 guesses the form from the values
-    (fractions when at least 80% of them lie within ``[-1, 1]``), even with a declared domain.
-    A column it would misread, such as growth mostly past 100%, is multiplied by 100 so that it
-    reads it right, and its domain with it. Remove this once Flint lets the input state the
-    form (https://github.com/microsoft/flint-chart/issues/154).
-
-    Args:
-        rows: The chart's rows, percentages as fractions.
-        fields: Each column's type.
-
-    Returns:
-        The rows and types to send (``rows`` and ``fields`` themselves when nothing changes),
-        and the columns sent as percent points.
-    """
-    points = frozenset(
-        name
-        for name, field in fields.items()
-        if field.semantic_type in _PERCENT_TYPES and _flint_reads_points(rows, name)
-    )
-    if not points:
-        return rows, dict(fields), points
-    sent_fields = dict(fields)
-    for name in points:
-        domain = fields[name].intrinsic_domain
-        if domain is not None:
-            sent_fields[name] = replace(
-                fields[name], intrinsic_domain=(domain[0] * 100, domain[1] * 100)
-            )
-    sent = [
-        {name: _to_points(value) if name in points else value for name, value in row.items()}
-        for row in rows
-    ]
-    return sent, sent_fields, points
-
-
-def _flint_reads_points(rows: list[dict[str, object]], name: str) -> bool:
-    # Mirrors detectPercentageRepresentation in flint-chart.
-    values = [
-        value
-        for row in rows
-        if isinstance(value := row.get(name), int | float) and not isinstance(value, bool)
-    ]
-    if not values:
-        return False
-    return sum(abs(value) <= 1 for value in values) / len(values) < 0.8
-
-
-def _to_points(value: object) -> object:
-    if isinstance(value, int | float) and not isinstance(value, bool):
-        return round(value * 100, 10)
-    return value
 
 
 def semantic_types(fields: Mapping[str, FieldType]) -> dict[str, str | dict[str, object]]:
@@ -346,11 +296,13 @@ def _from_block(
             return FieldType(semantic_type=semantic_type, unit=value.currency)
         case "percentage":
             assert isinstance(value, PercentageValue)
-            # Flint formats a percentage only when a domain is set. The rows hold fractions;
-            # percent_points sends points instead where Flint would guess points.
+            # The rows always hold fractions (value_form divides points by 100). Stating so
+            # stops Flint guessing the scale from the values, which misreads growth mostly
+            # past 100% as points (flint-chart#154).
             return FieldType(
                 semantic_type="Percentage",
                 intrinsic_domain=(0, 1),
+                percent_scale="fraction",
                 value_form="percent_to_fraction" if value.scale == "percent" else "as_is",
             )
         case "duration":

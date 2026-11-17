@@ -6,7 +6,7 @@ Everything `@s-layer/flint-charts` exports, by entry point. For a walk-through, 
 | Entry point | Needs | Holds |
 |---|---|---|
 | `@s-layer/flint-charts` | nothing beyond `flint-chart` | reading results, fetching rows, checking charts |
-| `@s-layer/flint-charts/react` | React 18+, `vega`, `vega-lite`, `vega-tooltip` | `<SLayerChart>`, `<ShowChartToolCall>`, `useChart` |
+| `@s-layer/flint-charts/react` | React 18+ | `<SLayerChart>`, `<ShowChartToolCall>`, `useChart` |
 | `@s-layer/flint-charts/copilotkit` | the above and `@copilotkit/react-core` 1.80+ | `showChartRenderer`, `useShowChartRenderer` |
 | `@s-layer/flint-charts/assistant-ui` | the above and `@assistant-ui/react` 0.15 | `showChartTool` |
 

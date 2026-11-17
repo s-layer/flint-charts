@@ -1,6 +1,4 @@
 {
-  "flintVersion": "1.0.1",
-  "flintMcpVersion": "1.0.1",
   "semanticTypes": [
     "Amount",
     "Boolean",
