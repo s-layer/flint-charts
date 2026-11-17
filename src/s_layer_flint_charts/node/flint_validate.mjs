@@ -9,13 +9,13 @@
 // Only protocol lines go to stdout; anything else goes to stderr.
 //
 // flint-chart is found, in order, at FLINT_CHART_DIR, beside each node_modules/.bin on PATH
-// (where `npx -p flint-chart@X node flint_validate.mjs` installs it), then in
-// ./node_modules of the working directory.
+// (where `npx -p flint-chart@X node flint_validate.mjs` installs it), in node_modules next to
+// this script (after `npm install` here), then in ./node_modules of the working directory.
 
 import { existsSync, readFileSync } from "node:fs";
 import { delimiter, dirname, join, resolve, sep } from "node:path";
 import { createInterface } from "node:readline";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const write = (message) => process.stdout.write(`${JSON.stringify(message)}\n`);
 
@@ -25,6 +25,7 @@ function candidates() {
   for (const entry of (process.env.PATH ?? "").split(delimiter)) {
     if (entry.endsWith(`node_modules${sep}.bin`)) dirs.push(join(dirname(entry), "flint-chart"));
   }
+  dirs.push(fileURLToPath(new URL("./node_modules/flint-chart", import.meta.url)));
   dirs.push(resolve("node_modules", "flint-chart"));
   return dirs;
 }

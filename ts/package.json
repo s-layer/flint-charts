@@ -52,7 +52,7 @@
     "test:browser": "playwright test"
   },
   "dependencies": {
-    "flint-chart": "~1.1.0"
+    "flint-chart": "1.1.0"
   },
   "peerDependencies": {
     "@assistant-ui/react": "^0.15.0",

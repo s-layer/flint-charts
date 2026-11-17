@@ -34,7 +34,9 @@ def test_the_script_ships_inside_the_package() -> None:
     assert VALIDATOR_SCRIPT.is_file()
     package = sys.modules["s_layer_flint_charts"].__file__
     assert package is not None
-    assert VALIDATOR_SCRIPT.parent == Path(package).parent
+    assert VALIDATOR_SCRIPT.parent == Path(package).parent / "node"
+    # The manifest FLINT_VERSION is read from sits beside it.
+    assert (VALIDATOR_SCRIPT.parent / "package.json").is_file()
 
 
 def test_a_clean_report() -> None:

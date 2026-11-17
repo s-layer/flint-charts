@@ -30,7 +30,7 @@ __all__ = [
     "report_from_result",
 ]
 
-VALIDATOR_SCRIPT = Path(__file__).with_name("flint_validate.mjs")
+VALIDATOR_SCRIPT = Path(__file__).parent / "node" / "flint_validate.mjs"
 """The Node script the sidecar runs. Its last argument is the flint-chart version it insists on."""
 
 DEFAULT_SIDECAR_COMMAND: tuple[str, ...] = (

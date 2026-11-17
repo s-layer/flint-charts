@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
 import pyarrow as pa
@@ -35,8 +37,15 @@ __all__ = [
     "semantic_types",
 ]
 
-FLINT_VERSION = "1.1.0"
-"""The flint-chart release the mapping was written and checked against."""
+FLINT_VERSION: str = json.loads(
+    (Path(__file__).parent / "node" / "package.json").read_text(encoding="utf-8")
+)["dependencies"]["flint-chart"]
+"""
+The flint-chart release the mapping was written and checked against.
+
+Read from ``node/package.json`` in this package, which Dependabot bumps together with
+``ts/package.json``; CI checks the two agree and are exact versions.
+"""
 
 Grain = Literal["second", "minute", "hour", "day", "week", "month", "quarter", "year"]
 """A time grain, as the vocabulary's ``time.grain`` and semolina's ``.grain()`` name them."""

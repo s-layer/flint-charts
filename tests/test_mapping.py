@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, cast
 
@@ -516,10 +517,21 @@ def expected_pin() -> dict[str, object]:
         interactions = cast("list[dict[str, str]]", spec["interactions"])
         chart_types[chart_type] = [entry["type"] for entry in interactions]
     return {
-        "flintVersion": FLINT_VERSION,
         "semanticTypes": sorted(FLINT_SEMANTIC_TYPES),
         "chartTypes": chart_types,
     }
+
+
+def test_flint_version_is_an_exact_pin_shared_with_the_ts_package() -> None:
+    """
+    One flint-chart release for the sidecar, the mapping and the TS package.
+
+    Dependabot bumps ``node/package.json`` and ``ts/package.json`` in one grouped PR, so CI then
+    runs every test against the new release; this fails if only one of them moves.
+    """
+    ts_package = json.loads((PIN_FILE.parent.parent / "package.json").read_text())
+    assert re.fullmatch(r"\d+\.\d+\.\d+", FLINT_VERSION)
+    assert ts_package["dependencies"]["flint-chart"] == FLINT_VERSION
 
 
 def test_pin_file_matches_the_mapping() -> None:

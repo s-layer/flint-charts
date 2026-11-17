@@ -5,8 +5,6 @@ import { describe, expect, it } from "vitest";
 
 // Kept in step with the Python mapping (s_layer_flint_charts._mapping) by hand; a Python test checks it.
 const pin = JSON.parse(readFileSync(new URL("./flint-pin.json", import.meta.url), "utf8")) as {
-  flintVersion: string;
-  flintMcpVersion: string;
   semanticTypes: string[];
   chartTypes: Record<string, string[]>;
 };
@@ -21,8 +19,28 @@ const version = (name: string) =>
 const TIME_AXIS = ["Date", "DateTime", "Year", "YearMonth", "YearQuarter"];
 
 describe("Python mapping pin", () => {
-  it("names the flint-chart version installed here", () => {
-    expect(version("flint-chart")).toBe(pin.flintVersion);
+  // The Python side's FLINT_VERSION comes from this manifest; Dependabot bumps it with ours.
+  const pythonPin = (
+    JSON.parse(
+      readFileSync(
+        new URL("../../src/s_layer_flint_charts/node/package.json", import.meta.url),
+        "utf8",
+      ),
+    ) as { dependencies: Record<string, string> }
+  ).dependencies["flint-chart"];
+  const ourPin = (
+    JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
+      dependencies: Record<string, string>;
+    }
+  ).dependencies["flint-chart"];
+
+  it("pins flint-chart exactly, here and on the Python side", () => {
+    expect(ourPin).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(pythonPin).toBe(ourPin);
+  });
+
+  it("has the pinned flint-chart installed", () => {
+    expect(version("flint-chart")).toBe(ourPin);
   });
 
   it.each(pin.semanticTypes)("%s is a registered Flint semantic type", (semanticType) => {
