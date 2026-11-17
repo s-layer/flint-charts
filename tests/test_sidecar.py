@@ -345,7 +345,7 @@ async def test_stopping_a_stuck_sidecar_stops_its_children(tmp_path: Path) -> No
     # so read its state once: gone or a zombie both mean it was stopped.
     try:
         state = Path(f"/proc/{pid}/status").read_text()
-    except FileNotFoundError:
+    except (FileNotFoundError, ProcessLookupError):  # ESRCH when read while being reaped
         with pytest.raises(ProcessLookupError):
             os.kill(pid, 0)
     else:
