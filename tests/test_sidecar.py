@@ -20,6 +20,7 @@ from s_layer_flint_charts import (
     SidecarError,
     ValidationReport,
     report_from_result,
+    report_from_text,
 )
 from tests.test_flint_inputs import INPUTS_FILE
 
@@ -69,6 +70,57 @@ def test_invalid_without_errors_still_stops_the_chart() -> None:
     assert report_from_result({"valid": False}).errors == ("Flint cannot draw this chart",)
 
 
+# Text reports as flint-chart-mcp 1.1's validate_chart writes them for the Vega-Lite backend.
+CLEAN = "Nothing to fix: call show with this spec."
+TO_FIX = "Nothing is on screen: fix what this report lists, then call show with the whole spec."
+NOTED = "Noted (the card draws with these; change nothing now unless the user asks):"
+MERGED = (
+    "Up to 2 rows share one month × region cell; orders is aggregated with sum "
+    '(6 cells from 12 rows). Set "aggregate" on color to choose another operation.'
+)
+
+
+def test_a_clean_text_report() -> None:
+    report = report_from_text(CLEAN)
+    assert report == ValidationReport()
+
+
+def test_text_report_errors_and_warnings() -> None:
+    text = "\n".join(
+        [
+            TO_FIX,
+            "Fix before it draws:",
+            "- ✗ encoding x names a field the data does not have: mnth",
+            "Noted (the card draws with these):",
+            "- labels overlap",
+        ]
+    )
+    report = report_from_text(text)
+    assert report == ValidationReport(
+        errors=("encoding x names a field the data does not have: mnth",),
+        warnings=("labels overlap",),
+    )
+
+
+def test_a_text_report_of_merged_rows_stops_the_chart() -> None:
+    report = report_from_text("\n".join([CLEAN, NOTED, f"- {MERGED}", "- labels overlap"]))
+    assert report is not None
+    assert not report.valid
+    assert report.errors == (MERGED,)
+    assert report.warnings == ("labels overlap",)
+
+
+def test_a_text_report_to_fix_without_findings_still_stops_the_chart() -> None:
+    report = report_from_text(TO_FIX)
+    assert report is not None
+    assert report.errors == ("Flint cannot draw this chart",)
+
+
+@pytest.mark.parametrize("text", ["", "the chart is fine", '{"valid": true}'])
+def test_text_that_is_no_report(text: str) -> None:
+    assert report_from_text(text) is None
+
+
 @pytest.mark.anyio
 async def test_a_sidecar_must_be_started() -> None:
     with pytest.raises(SidecarError, match="not started"):
@@ -92,6 +144,20 @@ async def test_flint_checks_the_charts_the_server_builds() -> None:
         for name, case in cases.items():
             report = await sidecar.validate(case["input"])
             assert report.valid == (not case["problems"]), (name, report)
+            if case["problems"]:
+                # Refused because Flint merges rows, not for some other reason.
+                assert any("is aggregated with" in error for error in report.errors), report
+        broken = cases["orders_heatmap"]["input"]
+        missing = {
+            **broken,
+            "chart_spec": {
+                **broken["chart_spec"],
+                "encodings": {**broken["chart_spec"]["encodings"], "x": {"field": "nope"}},
+            },
+        }
+        report = await sidecar.validate(missing)
+        assert not report.valid
+        assert report.errors != ("Flint cannot draw this chart",), report
         with pytest.raises(SidecarError, match="validate_chart failed"):
             await sidecar.validate({"data": {"values": []}})
 

@@ -36,7 +36,7 @@ __all__ = [
     "semantic_types",
 ]
 
-FLINT_VERSION = "1.0.1"
+FLINT_VERSION = "1.1.0"
 """The flint-chart release the mapping was written and checked against."""
 
 Grain = Literal["second", "minute", "hour", "day", "week", "month", "quarter", "year"]
@@ -260,7 +260,7 @@ def percent_points(
     """
     Send a percentage as percent points when Flint would misread its fractions as points.
 
-    The rows hold percentages as fractions, but Flint 1.0.1 guesses the form from the values
+    The rows hold percentages as fractions, but Flint guesses the form from the values
     (fractions when at least 80% of them lie within ``[-1, 1]``), even with a declared domain.
     A column it would misread, such as growth mostly past 100%, is multiplied by 100 so that it
     reads it right, and its domain with it. Remove this once Flint lets the input state the

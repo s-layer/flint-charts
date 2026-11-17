@@ -52,6 +52,7 @@ from s_layer_flint_charts._sidecar import (
     FlintSidecar,
     SidecarError,
     report_from_result,
+    report_from_text,
 )
 from s_layer_flint_charts._store import ChartSession, ChartStore, Column, StoredChart, StoredResult
 
@@ -95,6 +96,7 @@ __all__ = [
     "map_field",
     "percent_points",
     "report_from_result",
+    "report_from_text",
     "result_columns",
     "run_query",
     "semantic_types",

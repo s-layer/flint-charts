@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import re
 from typing import TYPE_CHECKING, Self, cast
 
 from s_layer_flint_charts._charts import ValidationReport
@@ -25,9 +26,10 @@ __all__ = [
     "FlintSidecar",
     "SidecarError",
     "report_from_result",
+    "report_from_text",
 ]
 
-FLINT_MCP_VERSION = "1.0.1"
+FLINT_MCP_VERSION = "1.1.0"
 """The flint-chart-mcp release the sidecar client was written and checked against."""
 
 DEFAULT_SIDECAR_COMMAND: tuple[str, ...] = (
@@ -44,6 +46,19 @@ DEFAULT_SIDECAR_COMMAND: tuple[str, ...] = (
 
 _ERROR_WARNINGS = frozenset({"implicit-aggregate"})
 """Warnings that stop a chart: Flint merging rows means the grain guard missed a case."""
+
+_IMPLICIT_AGGREGATE = re.compile(r"rows share one .+ cell; .+ is aggregated with ")
+"""
+The message of Flint's ``implicit-aggregate`` warning, which a text report gives without its code.
+
+``tests/test_sidecar.py`` runs a chart Flint merges rows for through the pinned sidecar, so a
+rewording upstream fails there rather than letting such a chart through.
+"""
+
+_CLEAN = "Nothing to fix"
+_TO_FIX = "Nothing is on screen"
+_FIX_HEAD = "Fix before it draws"
+_NOTED_HEAD = "Noted"
 
 
 class SidecarError(RuntimeError):
@@ -62,6 +77,43 @@ def report_from_result(payload: Mapping[str, object]) -> ValidationReport:
     for entry in _entries(payload.get("warnings")):
         (errors if entry.get("code") in _ERROR_WARNINGS else warnings).append(_message(entry))
     if not errors and payload.get("valid") is False:
+        errors.append("Flint cannot draw this chart")
+    return ValidationReport(errors=tuple(errors), warnings=tuple(warnings))
+
+
+def report_from_text(text: str) -> ValidationReport | None:
+    """
+    Turn ``validate_chart``'s text report into a :class:`ValidationReport`.
+
+    Since flint-chart-mcp 1.1, ``validate_chart`` answers the Vega-Lite backend with the report
+    ``show`` gives the model: a head line saying whether there is anything to fix, then the
+    findings under "Fix before it draws:" (errors, marked ``✗``) and "Noted ...:" (warnings).
+    The findings carry no codes, so an ``implicit-aggregate`` warning is recognised by its
+    message, and counts as an error as in :func:`report_from_result`.
+
+    Returns:
+        The report, or ``None`` when ``text`` is not a report.
+    """
+    lines = text.strip().splitlines()
+    if not lines or not lines[0].startswith((_CLEAN, _TO_FIX)):
+        return None
+    errors: list[str] = []
+    warnings: list[str] = []
+    section = ""
+    for line in lines[1:]:
+        if line.startswith(_FIX_HEAD):
+            section = "fix"
+        elif line.startswith(_NOTED_HEAD):
+            section = "noted"
+        elif line.startswith("- "):
+            finding = line[2:].strip()
+            if finding.startswith("✗"):
+                errors.append(finding.removeprefix("✗").strip())
+            elif section == "fix" or _IMPLICIT_AGGREGATE.search(finding):
+                errors.append(finding)
+            else:
+                warnings.append(finding)
+    if not errors and lines[0].startswith(_TO_FIX):
         errors.append("Flint cannot draw this chart")
     return ValidationReport(errors=tuple(errors), warnings=tuple(warnings))
 
@@ -181,4 +233,6 @@ class FlintSidecar:
                 payload: object = json.loads(text)
                 if isinstance(payload, dict) and "valid" in payload:
                     return report_from_result(cast("dict[str, object]", payload))
+            if (report := report_from_text(text)) is not None:
+                return report
         raise SidecarError(f"validate_chart answered without a report: {' '.join(texts)[:200]}")
