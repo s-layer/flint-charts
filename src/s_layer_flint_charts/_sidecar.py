@@ -12,8 +12,12 @@ import asyncio
 import contextlib
 import itertools
 import json
+import os
+import signal
 from pathlib import Path
 from typing import TYPE_CHECKING, Self, cast
+
+import orjson
 
 from s_layer_flint_charts._charts import ValidationReport
 from s_layer_flint_charts._mapping import FLINT_VERSION
@@ -134,6 +138,8 @@ class FlintSidecar:
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 limit=_LINE_LIMIT,
+                # Its own process group, so stopping it also stops node under npx.
+                start_new_session=os.name == "posix",
             )
         except OSError as error:
             raise SidecarError(f"the Flint sidecar could not start: {error}") from error
@@ -176,28 +182,41 @@ class FlintSidecar:
                 )
             request_id = next(self._ids)
             try:
-                line = json.dumps({"id": request_id, "input": flint_input}, allow_nan=False)
-            except (TypeError, ValueError) as error:  # NaN, or a value JSON has no form for
+                # orjson, as for the rows the browser fetches: dates as ISO 8601, NaN as null.
+                line = orjson.dumps({"id": request_id, "input": flint_input})
+            except TypeError as error:  # a value JSON has no form for
                 raise SidecarError(f"the chart input is not JSON: {error}") from error
             try:
-                process.stdin.write(line.encode() + b"\n")
+                process.stdin.write(line + b"\n")
                 await process.stdin.drain()
-                answer = await self._read(self._timeout, "answer")
+                answer = await self._answer(request_id)
             except SidecarError:
                 await self._stop()
                 raise
             except OSError as error:  # the pipe closed under us
                 await self._stop()
                 raise SidecarError(f"the Flint sidecar did not answer: {error}") from error
-        if answer.get("id") != request_id:
-            await self._stop()
-            raise SidecarError(f"the Flint sidecar answered another request: {answer}")
         if "error" in answer:
             raise SidecarError(f"validateChart failed: {answer['error']}")
         result = answer.get("result")
         if not isinstance(result, dict) or "valid" not in result:
             raise SidecarError(f"the Flint sidecar answered without a report: {answer}")
         return report_from_result(cast("dict[str, object]", result))
+
+    async def _answer(self, request_id: int) -> dict[str, object]:
+        """
+        Read the answer to ``request_id``, past the late answers of cancelled requests.
+
+        A request cancelled while Flint worked on it still gets its answer, which then waits on
+        stdout ahead of the next request's; its id is lower, so it is skipped.
+        """
+        while True:
+            answer = await self._read(self._timeout, "answer")
+            answer_id = answer.get("id")
+            if answer_id == request_id:
+                return answer
+            if not isinstance(answer_id, int) or answer_id > request_id:
+                raise SidecarError(f"the Flint sidecar answered another request: {answer}")
 
     async def _read(self, timeout: float, what: str) -> dict[str, object]:
         process = self._process
@@ -235,5 +254,8 @@ class FlintSidecar:
             await asyncio.wait_for(process.wait(), 5)
         except TimeoutError:
             with contextlib.suppress(ProcessLookupError):
-                process.kill()
+                if os.name == "posix":
+                    os.killpg(process.pid, signal.SIGKILL)
+                else:  # pragma: no cover - Windows
+                    process.kill()
             await process.wait()

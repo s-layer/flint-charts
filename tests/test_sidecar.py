@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import datetime as dt
 import json
 import os
 import shutil
@@ -15,11 +17,15 @@ from s_layer_flint_charts import (
     DEFAULT_SIDECAR_COMMAND,
     FLINT_VERSION,
     VALIDATOR_SCRIPT,
+    FieldType,
     FlintSidecar,
     SidecarError,
     ValidationReport,
+    chart_rows,
     report_from_result,
+    semantic_types,
 )
+from tests._arrow import table
 from tests.test_flint_inputs import INPUTS_FILE
 
 FLINT_DIR = Path(__file__).parent.parent / "ts" / "node_modules" / "flint-chart"
@@ -176,12 +182,71 @@ async def test_a_sidecar_that_exits_mid_answer() -> None:
             await sidecar.validate({})
 
 
+ECHO_DATA = (
+    HELLO
+    + "for line in sys.stdin:\n"
+    + "    r = json.loads(line)\n"
+    + "    seen = json.dumps(r['input']['data']['values'])\n"
+    + "    w = [{'severity': 'info', 'code': 'seen', 'message': seen}]\n"
+    + "    report = {'valid': True, 'warnings': w}\n"
+    + "    print(json.dumps({'id': r['id'], 'result': report}), flush=True)\n"
+)
+
+
 @pytest.mark.anyio
-async def test_an_input_json_cannot_hold_keeps_the_sidecar() -> None:
+async def test_rows_go_out_as_the_browser_gets_them() -> None:
+    # chart_rows leaves dates and timestamps as Python objects for orjson to write; the sidecar
+    # must check the same JSON the browser fetches: ISO 8601 strings, NaN as null.
+    rows = [
+        {
+            "day": dt.date(2024, 1, 15),
+            "at": dt.datetime(2024, 1, 15, 14, 30),
+            "rate": float("nan"),
+        }
+    ]
+    async with FlintSidecar(fake(ECHO_DATA)) as sidecar:
+        report = await sidecar.validate({"data": {"values": rows}})
+    assert json.loads(report.warnings[0]) == [
+        {"day": "2024-01-15", "at": "2024-01-15T14:30:00", "rate": None}
+    ]
+
+
+@pytest.mark.anyio
+async def test_an_input_with_no_json_form_keeps_the_sidecar() -> None:
     async with FlintSidecar(fake(ECHO_RESULT)) as sidecar:
         with pytest.raises(SidecarError, match="not JSON"):
-            await sidecar.validate({"value": float("nan")})
+            await sidecar.validate({"value": object()})
         assert await sidecar.validate({"result": {"valid": True}}) == ValidationReport()
+
+
+SLOW_FIRST = (
+    HELLO
+    + "import time\n"
+    + "for line in sys.stdin:\n"
+    + "    r = json.loads(line)\n"
+    + "    if r['input'].get('slow'):\n"
+    + "        time.sleep(0.5)\n"
+    + "    print(json.dumps({'id': r['id'], 'result': r['input']['result']}), flush=True)\n"
+)
+
+
+@pytest.mark.anyio
+async def test_a_cancelled_check_leaves_the_sidecar_for_the_next() -> None:
+    # A request cancelled while Flint works on it (the user stops the run, the client goes)
+    # must not leave its late answer to be read as the next request's.
+    merged = {
+        "valid": True,
+        "warnings": [{"severity": "warning", "code": "implicit-aggregate", "message": "merged"}],
+    }
+    async with FlintSidecar(fake(SLOW_FIRST), timeout=5) as sidecar:
+        slow = asyncio.create_task(sidecar.validate({"slow": True, "result": merged}))
+        await asyncio.sleep(0.1)
+        slow.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await slow
+        report = await sidecar.validate({"result": {"valid": True}})
+        assert report == ValidationReport()
+        assert await sidecar.validate({"result": merged}) == ValidationReport(errors=("merged",))
 
 
 # The real script, with the flint-chart pinned in ts/package.json.
@@ -227,6 +292,61 @@ async def test_flint_checks_the_charts_the_server_builds(flint_env: tuple[str, .
         empty = await sidecar.validate({"data": {"values": []}})
         assert not empty.valid
         assert empty.errors != ("Flint cannot draw this chart",), empty
+
+
+@pytest.mark.anyio
+async def test_flint_checks_a_daily_line_built_from_query_rows(flint_env: tuple[str, ...]) -> None:
+    # Straight from chart_rows, not round-tripped through JSON: the rows hold datetime.date.
+    fields = {
+        "day": FieldType(semantic_type="Date", value_form="date"),
+        "revenue": FieldType(semantic_type="Amount", unit="USD"),
+    }
+    result = chart_rows(
+        table(
+            {
+                "day": [dt.date(2024, 1, d) for d in (1, 2, 3)],
+                "revenue": [10.0, float("nan"), 12.5],
+            }
+        ),
+        fields,
+    )
+    assert isinstance(result.rows[0]["day"], dt.date)
+    flint_input = {
+        "data": {"values": result.rows},
+        "semantic_types": semantic_types(result.fields),
+        "chart_spec": {
+            "chartType": "Line Chart",
+            "encodings": {"x": {"field": "day"}, "y": {"field": "revenue"}},
+        },
+    }
+    async with FlintSidecar(flint_env) as sidecar:
+        report = await sidecar.validate(flint_input)
+    assert report.valid, report
+
+
+@pytest.mark.skipif(os.name != "posix", reason="process groups are POSIX")
+@pytest.mark.anyio
+async def test_stopping_a_stuck_sidecar_stops_its_children(tmp_path: Path) -> None:
+    # npx runs node as a child; a node stuck in a loop ignores stdin closing, and killing npx
+    # alone would leave it running.
+    child = (
+        "import json, os, time; "
+        'print(json.dumps({"ready": True, "version": str(os.getpid())}), flush=True); '
+        "time.sleep(300)"
+    )
+    wrapper = f"{sys.executable} -c '{child}' & wait"
+    # Stopping waits 5s for a clean exit, then kills the group; with the child left running
+    # (holding stdout open) the stop would hang until the child's sleep ends.
+    async with asyncio.timeout(20):
+        async with FlintSidecar(("sh", "-c", wrapper)) as sidecar:
+            assert sidecar.version is not None
+            pid = int(sidecar.version)
+    status = Path(f"/proc/{pid}/status")
+    if status.exists():  # reparented children linger as zombies until init reaps them
+        assert "State:\tZ" in status.read_text()
+    else:
+        with pytest.raises(ProcessLookupError):
+            os.kill(pid, 0)
 
 
 @pytest.mark.anyio
