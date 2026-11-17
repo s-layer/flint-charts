@@ -341,15 +341,14 @@ async def test_stopping_a_stuck_sidecar_stops_its_children(tmp_path: Path) -> No
         async with FlintSidecar(("sh", "-c", wrapper)) as sidecar:
             assert sidecar.version is not None
             pid = int(sidecar.version)
-    # A reparented child lingers as a zombie until init reaps it, which can happen at any moment,
-    # so read its state once: gone or a zombie both mean it was stopped.
+    # Killed, the reparented child is a zombie (Z) until init reaps it, dead (X) during the reap,
+    # and then gone; reading /proc mid-reap can raise ESRCH. Any of these means it was stopped.
     try:
-        state = Path(f"/proc/{pid}/status").read_text()
-    except (FileNotFoundError, ProcessLookupError):  # ESRCH when read while being reaped
-        with pytest.raises(ProcessLookupError):
-            os.kill(pid, 0)
-    else:
-        assert "State:\tZ" in state
+        status = Path(f"/proc/{pid}/status").read_text()
+    except (FileNotFoundError, ProcessLookupError):
+        return
+    state = next(line for line in status.splitlines() if line.startswith("State:"))
+    assert state.split()[1] in {"Z", "X"}, state
 
 
 @pytest.mark.anyio
