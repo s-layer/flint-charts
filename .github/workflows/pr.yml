@@ -30,6 +30,23 @@ jobs:
       - name: Sync dependencies
         run: uv sync --locked --dev --all-extras
 
+      # The sidecar tests skip without it, and under CI a skip fails the run
+      # (tests/ci_skips.py). Same setup as quality.yml.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: ts/package.json
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: ts/pnpm-lock.yaml
+
+      - name: Install the Flint sidecar
+        run: pnpm --dir ts install --frozen-lockfile
+
       - name: Run tests with coverage
         run: uv run pytest --cov=src/s_layer_flint_charts --cov-report=xml --cov-report=term
 
