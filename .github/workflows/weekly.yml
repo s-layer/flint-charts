@@ -43,10 +43,29 @@ jobs:
         continue-on-error: true
         run: prek run --all-files
 
+      # The sidecar tests skip without it, and under CI a skip fails the run
+      # (tests/ci_skips.py). Same setup as quality.yml.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: ts/package.json
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: ts/pnpm-lock.yaml
+
+      - name: Install the Flint sidecar
+        run: pnpm --dir ts install --frozen-lockfile
+
       - name: Tests
         id: tests
         continue-on-error: true
         run: uv run pytest
+        env:
+          FLINT_SIDECAR_REQUIRED: "1"
 
       - name: Cache pruning
         if: always()
