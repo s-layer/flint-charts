@@ -13,14 +13,14 @@ pnpm --dir ts install --frozen-lockfile
 uv tool install prek  # once; skip if prek is already on PATH
 prek run --all-files
 CI=true FLINT_SIDECAR_REQUIRED=1 uv run pytest > /tmp/py.log 2>&1; echo "pytest rc=$?"
-(cd ts && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:browser)
+(cd ts && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:browser --forbid-only)
 ```
 
 It passes when every command exits 0 and every printed `rc=` is 0. `pnpm test:browser`
-needs Chromium (`pnpm exec playwright install chromium`). `FLINT_SIDECAR_REQUIRED=1`
-makes the sidecar tests fail rather than skip when node or `ts/node_modules` is missing,
-as in CI. A Python-only change still needs the TypeScript steps when it touches the
-shared inputs.
+needs Chromium (`pnpm exec playwright install chromium`); `--forbid-only` fails on a
+leftover `test.only`, as CI does. `FLINT_SIDECAR_REQUIRED=1` makes the sidecar tests
+fail rather than skip when node or `ts/node_modules` is missing, as in CI. A Python-only
+change still needs the TypeScript steps when it touches the shared inputs.
 
 `CI=true` turns on `tests/ci_skips.py`, which fails the run on any skip not allowed
 there, as CI does. Without it a skipped test only shows in the summary, and a run that

@@ -81,4 +81,4 @@ already happened, named under "Source".
   (`anentropic/github-reviewbot/...@main`) and `pypa/gh-action-pypi-publish@release/v1`
   (the ref pypa documents) run at a branch on purpose; none of these is a finding.
   Source: a branch ref (`dtolnay/rust-toolchain@stable`) broke every job's setup in
-  arrowmodel when the branch was force-pushed, and Dependabot only bumps tags.
+  arrowmodel when the branch was force-pushed, and Dependabot never moves a branch ref.
