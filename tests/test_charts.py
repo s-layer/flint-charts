@@ -242,16 +242,39 @@ async def test_a_chart_flint_rejects_is_not_kept() -> None:
     assert receipt.to_dict() == {"ok": False, "problems": ["no rows"]}
 
 
-class UnreachableValidator:
+class FailingValidator:
+    def __init__(self, error: SidecarError) -> None:
+        self.error = error
+
     async def validate(self, flint_input: Mapping[str, object]) -> ValidationReport:
-        raise SidecarError("the Flint sidecar did not answer within 10s: timed out")
+        raise self.error
 
 
-async def test_a_chart_flint_could_not_check_is_refused_with_the_reason() -> None:
+@pytest.mark.parametrize(
+    ("error", "problem"),
+    [
+        (
+            SidecarError("the Flint sidecar did not answer within 10s: timed out", retry=True),
+            "Flint could not check this chart (the Flint sidecar did not answer within 10s: "
+            "timed out); call show_chart again",
+        ),
+        (
+            SidecarError("the chart input is not JSON: Type is not JSON serializable"),
+            "Flint could not check this chart (the chart input is not JSON: Type is not JSON "
+            "serializable)",
+        ),
+    ],
+    ids=["worth-retrying", "would-fail-again"],
+)
+async def test_a_chart_flint_could_not_check_is_refused_with_the_reason(
+    error: SidecarError, problem: str
+) -> None:
     """
     A check that fails is a problem the model hears about, not an error that ends its run.
 
-    The chart is not kept: nothing vouched that Flint can draw it.
+    The chart is not kept: nothing vouched that Flint can draw it. Only a failure that a fresh
+    sidecar may not repeat (a timeout, an exit) asks the model to call again; one the same input
+    would meet again does not, so the model doesn't retry until it runs out of turns.
     """
     session = ChartSession()
     result = stored()
@@ -262,15 +285,9 @@ async def test_a_chart_flint_could_not_check_is_refused_with_the_reason() -> Non
         chart_type="Line Chart",
         encodings=LINES,
         title="Revenue",
-        validator=UnreachableValidator(),
+        validator=FailingValidator(error),
     )
-    assert receipt.to_dict() == {
-        "ok": False,
-        "problems": [
-            "Flint could not check this chart (the Flint sidecar did not answer within 10s: "
-            "timed out); call show_chart again"
-        ],
-    }
+    assert receipt.to_dict() == {"ok": False, "problems": [problem]}
 
 
 async def test_an_unknown_result_asks_for_the_query_again() -> None:

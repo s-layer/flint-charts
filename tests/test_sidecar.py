@@ -194,10 +194,41 @@ async def test_a_sidecar_that_fails_a_check_is_started_again_for_the_next(
     """
     command = fails_first_check(tmp_path / "failed-once", failure)
     async with FlintSidecar(command, timeout=0.5) as sidecar:
-        with pytest.raises(SidecarError, match=match):
+        with pytest.raises(SidecarError, match=match) as failed:
             await sidecar.validate({})
+        assert failed.value.retry
         assert await sidecar.validate({}) == ValidationReport()
         assert sidecar.version == "9.9.9"
+
+
+@pytest.mark.anyio
+async def test_leaving_the_block_waits_for_a_restart_and_stops_it(tmp_path: Path) -> None:
+    """
+    A restart in flight when the block ends is stopped, not left running.
+
+    The second process takes a moment to say hello, so the block ends while a check is
+    starting it. Leaving the block must wait for that check and then stop the new process.
+    """
+    marker = tmp_path / "started-once"
+    command = fake(
+        f"import pathlib, sys, time\nm = pathlib.Path({str(marker)!r})\n"
+        + "if m.exists():\n    time.sleep(0.5)\n"
+        + "else:\n    m.touch()\n"
+        + HELLO
+        + "for line in sys.stdin:\n"
+        + "    if not pathlib.Path(str(m) + '.checked').exists():\n"
+        + "        pathlib.Path(str(m) + '.checked').touch(); sys.exit(2)\n"
+        + "    r = json.loads(line)\n"
+        + "    print(json.dumps({'id': r['id'], 'result': {'valid': True}}), flush=True)\n"
+    )
+    sidecar = FlintSidecar(command)
+    async with sidecar:
+        with pytest.raises(SidecarError, match="exited"):
+            await sidecar.validate({})
+        check = asyncio.create_task(sidecar.validate({}))
+        await asyncio.sleep(0.1)  # the check is now starting the second process
+    assert await check == ValidationReport()
+    assert sidecar._process is None
 
 
 @pytest.mark.anyio
@@ -241,8 +272,9 @@ async def test_rows_go_out_as_the_browser_gets_them() -> None:
 @pytest.mark.anyio
 async def test_an_input_with_no_json_form_keeps_the_sidecar() -> None:
     async with FlintSidecar(fake(ECHO_RESULT)) as sidecar:
-        with pytest.raises(SidecarError, match="not JSON"):
+        with pytest.raises(SidecarError, match="not JSON") as failed:
             await sidecar.validate({"value": object()})
+        assert not failed.value.retry
         assert await sidecar.validate({"result": {"valid": True}}) == ValidationReport()
 
 
