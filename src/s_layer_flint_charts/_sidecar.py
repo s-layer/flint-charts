@@ -145,8 +145,11 @@ class FlintSidecar:
         exc: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        self._entered = False
-        await self._stop()
+        # Under the lock, so a check that is starting the sidecar again finishes first and
+        # its process is stopped here rather than left running after the block.
+        async with self._lock:
+            self._entered = False
+            await self._stop()
 
     async def _start(self) -> None:
         try:
@@ -203,12 +206,17 @@ class FlintSidecar:
                 process.stdin.write(line + b"\n")
                 await process.stdin.drain()
                 answer = await self._answer(request_id)
-            except SidecarError:
+            except SidecarError as error:
+                # The process is stopped and the next check starts a fresh one, so this one
+                # is worth calling again.
                 await self._stop()
+                error.retry = True
                 raise
             except OSError as error:  # the pipe closed under us
                 await self._stop()
-                raise SidecarError(f"the Flint sidecar did not answer: {error}") from error
+                raise SidecarError(
+                    f"the Flint sidecar did not answer: {error}", retry=True
+                ) from error
         if "error" in answer:
             raise SidecarError(f"validateChart failed: {answer['error']}")
         result = answer.get("result")

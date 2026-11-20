@@ -114,7 +114,18 @@ class ValidationReport:
 
 
 class ValidatorError(RuntimeError):
-    """A validator could not check a chart, such as a Flint sidecar that did not answer."""
+    """
+    A validator could not check a chart, such as a Flint sidecar that did not answer.
+
+    Args:
+        message: What went wrong.
+        retry: Whether calling again may succeed, as after a timeout. False when the same
+            input would fail the same way.
+    """
+
+    def __init__(self, message: str, *, retry: bool = False) -> None:
+        super().__init__(message)
+        self.retry = retry
 
 
 class ChartValidator(Protocol):
@@ -310,7 +321,9 @@ async def show_chart(
             report = await validator.validate(flint_input)
         except ValidatorError as error:
             # Raised out of a tool, it would end the agent's run; the model can try again.
-            problem = f"Flint could not check this chart ({error}); call show_chart again"
+            problem = f"Flint could not check this chart ({error})"
+            if error.retry:
+                problem += "; call show_chart again"
             return ChartReceipt(chart_id=None, problems=(problem,))
         if not report.valid:
             return ChartReceipt(chart_id=None, problems=report.errors)

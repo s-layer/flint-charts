@@ -211,7 +211,9 @@ sidecar = FlintSidecar(timeout=5.0, start_timeout=300.0)
 A check that times out, or finds that Node has exited, stops the sidecar. `show_chart` then
 answers the model with the problem ("Flint could not check this chart (...); call show_chart
 again") and keeps no chart, so the agent's run goes on. The next check starts the sidecar again,
-as long as the lifespan's `async with` is still open.
+as long as the lifespan's `async with` is still open. A check that would fail the same way on
+every call, such as a chart input with no JSON form, gets the problem without the "call
+show_chart again".
 
 To use a `flint-chart` that you install yourself (an image built without network access, say),
 install the pinned release:
