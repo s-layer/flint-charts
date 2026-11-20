@@ -1,0 +1,46 @@
+version: 1
+user_personas:
+  - name: "Python backend developer"
+    skill_level: "advanced"
+    generated_at: "2026-11-20"
+    doc_pages:
+      - "README.md"
+      - "docs/index.rst"
+      - "docs/agents.md"
+      - "docs/chat-ui.md"
+      - "docs/typescript.md"
+      - "docs/mapping.md"
+      - "docs/grain.md"
+      - "docs/changelog.md"
+      - "docs/autoapi (generated from src/s_layer_flint_charts docstrings)"
+    scenarios:
+      - id: S1
+        goal: "I want to give my Pydantic AI agent one query tool per semolina SemanticView plus a show_chart tool, with each query tool described from the view's description="
+        starting_point: "docs/index.rst"
+        persona_relevance: "The persona's discovery story: they already query semantic views with semolina and want an agent to chart results without rows passing through the model."
+        done_when: "I know which extras to install, how to build chart_toolset with a ChartStore and a session_id function, how each view's tool description is chosen (description= from semolina codegen, else the docstring), what engine the query tools run on, and which semolina version I need."
+      - id: S2
+        goal: "I want to mount the rows route on my Starlette/FastAPI app so the browser can fetch each chart's rows, scoped to the conversation that made the chart"
+        starting_point: "docs/index.rst"
+        persona_relevance: "Without the rows route the chart never draws; without correct scoping one conversation could read another's rows."
+        done_when: "I have chart_routes mounted at the prefix the receipts point at, a session_of that returns the same id my agent run passes as session_id, and I know what 404 means and how long charts live."
+      - id: S3
+        goal: "I want to validate every chart with the Flint sidecar in production, including in a container built without network access, and know how it fails"
+        starting_point: "docs/index.rst"
+        persona_relevance: "never_assume says the persona doesn't know what the sidecar is or that it needs Node; 0.3.0 changed the sidecar to a Node script over JSON lines."
+        done_when: "I know the sidecar is a Node process running validateChart, what Node version and flint-chart version it needs, how to start and stop it with my app, how to run it offline with FLINT_CHART_DIR, what counts as an error vs a warning, and what my app sees when the sidecar times out or dies."
+      - id: S4
+        goal: "I want to know which charts the grain guard refuses and what to change in my views or prompts so the agent's common charts (e.g. revenue by month stacked by region) go through"
+        starting_point: "docs/index.rst"
+        persona_relevance: "never_assume lists what the grain guard refuses and why; refusals surface as tool retries the developer must debug."
+        done_when: "I can list the refusal rules, recognise each message, and know what metadata (additivity) a metric needs for stacked charts to be allowed."
+      - id: S5
+        goal: "I want to know which Flint semantic type each of my view's s_layer blocks maps to, including percentages, and what happens to fields without a block"
+        starting_point: "docs/index.rst"
+        persona_relevance: "never_assume lists how S-LAYER semantic formats map to Flint types; 0.3.0 changed percentages to state percentScale: \"fraction\"."
+        done_when: "I can predict the semantic_types entry for each column the toolset returns, including percentScale on percentages, PercentageChange widening, and the fallback for unblocked fields."
+      - id: S6
+        goal: "I want to upgrade a 0.2.0 backend that installed the [validate] extra and used FlintSidecar(url=...) to 0.3.0"
+        starting_point: "docs/index.rst"
+        persona_relevance: "0.3.0 removes the validate extra and FlintSidecar(url=), drops flint-chart-mcp, removes the percent_points workaround and needs semolina>=0.10.0; an existing user must be able to tell what to change."
+        done_when: "I know to drop the [validate] extra, what replaces FlintSidecar(url=...) and the flint-chart-mcp service, that Node>=18 must now run beside the Python app, that semolina>=0.10.0 is required, and how percentage output changed."

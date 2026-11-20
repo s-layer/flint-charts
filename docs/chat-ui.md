@@ -1,17 +1,19 @@
 # Charts in a chat UI
 
 `@s-layer/flint-charts` draws the charts `show_chart` answers with. It fetches each chart's rows
-from the URL in its `data`, checks the chart with Flint, and draws it with Flint's own
-`<FlintChart>`. The adapters for CopilotKit and assistant-ui draw every `show_chart` call in the
-chat: a box with the chart's title while the server draws it, then the chart.
+from the URL in its `data`, checks the chart with [Flint](https://github.com/microsoft/flint-chart),
+and draws it with Flint's own `<FlintChart>`. The adapters for CopilotKit and assistant-ui draw
+every `show_chart` call in the chat: a box with the chart's title while the server draws it, then
+the chart.
 
 ```bash
 npm install @s-layer/flint-charts
 ```
 
-Flint brings the chart libraries it draws with (Vega-Lite among them). The package needs React
-18 or later. Its components are client components (the built files say
-`"use client"`), so in Next.js render them from client code.
+The package depends on Flint (`flint-chart`, pinned to one exact release), and Flint brings the
+chart libraries it draws with, Vega-Lite among them. The React entry points need React 18 or
+later. Their components are client components (the built files say `"use client"`), so in
+Next.js render them from client code.
 
 ## Reach the rows route
 
@@ -23,16 +25,17 @@ app, then make that path reach it in one of two ways:
   `/flint` to the Python app: `server.proxy` in Vite, `rewrites` in Next.js, or your reverse
   proxy. The default rows request then works as it is.
 - **Another origin.** Pass an absolute `url_prefix`, such as
-  `url_prefix="https://api.example.com/flint"`, to `chart_toolset`, allow the page's origin in
-  the Python app's CORS settings with credentials allowed, and set
+  `url_prefix="https://api.example.com/flint"`, to
+  {py:func}`chart_toolset <s_layer_flint_charts.pydantic_ai.chart_toolset>`, allow the page's origin
+  in the Python app's CORS settings with credentials allowed, and set
   `requestInit: { credentials: "include" }` (see
-  [below](#send-credentials-or-headers-with-the-rows-request)). A session cookie sent this way
-  needs `SameSite=None; Secure`.
+  [below](#send-credentials-or-headers-with-the-rows-request)). A session cookie sent this way needs
+  `SameSite=None; Secure`.
 
 Either way, the rows request must carry whatever your `session_of` reads, usually a session
-cookie, and it must name the same conversation the agent run used as its `session_id`. A
-chart that answers "This chart's data has expired" on its first draw usually means the request
-did not reach the route, or arrived without that conversation.
+cookie, and it must name the same conversation the agent run used as its `session_id`. If a
+chart shows "This chart's data has expired" on its first draw, the request usually did not
+reach the route, or arrived without that conversation.
 
 ## CopilotKit
 
@@ -134,21 +137,21 @@ The defaults, [`<ChartSkeleton>`](typescript.md#chartskeleton) and
 [`<ChartErrorNote>`](typescript.md#charterrornote), set their background, padding and corners
 inline, so to restyle them pass your own `loading` and `renderError`.
 [`describeError`](typescript.md#describeerrorerror) gives the default note's text for your own
-error component. The defaults carry the classes `slayer-chart-skeleton` and
+error component. The defaults have the classes `slayer-chart-skeleton` and
 `slayer-chart-error` for selecting them, such as in tests.
 
-## What the reader sees when a chart can't be drawn
+## Charts that can't be drawn
 
 - The rows route answers 404: "This chart's data has expired. Ask for it again to redraw it."
-  The route answers 404 for a chart that has expired, and also for a request that does not
-  carry the conversation the chart belongs to. By default the store keeps a conversation's
+  The route answers 404 for a chart that has expired, and also for a request without the
+  chart's conversation. By default the store keeps a conversation's
   newest 50 charts, until an hour after the agent last used it or until more than 1,000
   conversations push it out. Drawing a chart does not count as a use (see
   [Limits](agents.md#limits)).
 - The rows could not be fetched: "This chart's data could not be loaded."
 - Flint would draw something other than the rows, such as merging rows into one mark: "This
-  chart could not be drawn." The server checks each chart before it answers, so this means the
-  rows changed or the server ran without a validator.
+  chart could not be drawn." The server checks each chart before it answers, so either the rows
+  changed or the server ran without a validator.
 - Flint fails while it mounts a chart that passed its check: Flint shows its own muted error
   box in the chart's place, and `renderError` is not used. Pass `onError` to hear about it.
 

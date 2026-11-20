@@ -18,9 +18,10 @@ pip install 's-layer-flint-charts[pydantic-ai,server]'
 
 ## The toolset
 
-`chart_toolset` gives a Pydantic AI agent one `query_<view>` tool per semantic view and a
-`show_chart` tool. The tools keep results and charts in a `ChartStore`, one session per
-conversation, so tell the toolset which conversation a run belongs to:
+{py:func}`chart_toolset <s_layer_flint_charts.pydantic_ai.chart_toolset>` gives a Pydantic AI agent
+one `query_<view>` tool per semantic view and a `show_chart` tool. The tools keep results and charts
+in a {py:class}`ChartStore <s_layer_flint_charts.ChartStore>`, one session per conversation, so tell
+the toolset which conversation a run belongs to:
 
 ```python
 from dataclasses import dataclass
@@ -52,9 +53,10 @@ agent = Agent(
 )
 ```
 
-Each query tool's description tells the model which view it queries and what the view holds:
-the model's `description=`, which semolina codegen writes from the warehouse's view comment, or
-its class docstring when it has no `description=`.
+Each query tool's description tells the model which view the tool queries and what the view
+holds. It comes from the view class's `description=`, which semolina codegen writes from the
+warehouse's view comment. A view with no `description=`, or a blank one, falls back to its class
+docstring.
 
 Each query tool takes semolina's query spec: `metrics`, `dimensions` (with a grain such as
 `ordered_at__month`), `where`, `order_by` and `limit`. Its schema lists the view's own field
@@ -106,7 +108,7 @@ app = Starlette(routes=[Mount("/flint", routes=chart_routes(store, session_of))]
 or gzip as the browser accepts, and 404 for an unknown, expired or foreign chart. If you mount
 the routes elsewhere, pass the same prefix as `url_prefix=` to `chart_toolset`.
 
-The rows are kept per chart rather than per result, because a chart may draw different rows from
+The rows are kept per chart, not per result, because a chart may draw different rows from
 its result: the grain guard can add zeros to a stacked area.
 
 ## Drawing the chart
@@ -117,11 +119,11 @@ for CopilotKit, assistant-ui and plain React; see [Charts in a chat UI](chat-ui.
 
 ## Checking charts with Flint
 
-`FlintSidecar` runs a small Node script that ships with this package and calls Flint's own
-`validateChart` on every chart, as the Vega-Lite backend would draw it, with the `flint-chart`
-release this package is pinned to. The two talk in JSON lines over stdin and stdout. Flint errors
-stop the chart, and so does its `implicit-aggregate` warning, which means Flint would merge rows.
-Other warnings are passed on to the model.
+{py:class}`FlintSidecar <s_layer_flint_charts.FlintSidecar>` runs a small Node script that ships
+with this package and calls Flint's own `validateChart` on every chart, as the Vega-Lite backend
+would draw it, with the `flint-chart` release this package is pinned to. The two talk in JSON lines
+over stdin and stdout. Flint errors stop the chart, and so does its `implicit-aggregate` warning,
+which means Flint would merge rows. Other warnings are passed on to the model.
 
 By default the sidecar starts with `npx`, which downloads the pinned `flint-chart` the first
 time, so Node must be installed. To use a `flint-chart` you install yourself (an image built
@@ -135,8 +137,8 @@ from s_layer_flint_charts import FLINT_VERSION, VALIDATOR_SCRIPT, FlintSidecar
 sidecar = FlintSidecar(("node", str(VALIDATOR_SCRIPT), FLINT_VERSION))
 ```
 
-The script refuses to start with any other `flint-chart` version. Without a validator, charts are
-checked by the grain guard alone.
+The script checks the `flint-chart` it finds against the version in its last argument and
+refuses to start on a mismatch. Without a validator, charts are checked by the grain guard alone.
 
 ## Limits
 

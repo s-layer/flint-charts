@@ -85,7 +85,8 @@ stop a chart, and so does its `implicit-aggregate` warning, which means Flint wo
 rows into one mark.
 
 Drawing the result without React, with Flint's Vega-Lite assembler and `vega-embed` (install
-`flint-chart` and `vega-embed` as your own dependencies to import them):
+`flint-chart`, at the release this package pins, and `vega-embed` as your own dependencies to
+import them):
 
 ```ts
 import { checkChart, loadChart } from "@s-layer/flint-charts";
@@ -145,7 +146,7 @@ under.
 
 ### `VERSION`
 
-The package version, such as `"0.1.0"`.
+The package version, such as `"0.2.0"`.
 
 ### `ChartAssemblyInput`, `ChartWarning`
 
