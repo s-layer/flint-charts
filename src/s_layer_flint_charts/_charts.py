@@ -113,11 +113,21 @@ class ValidationReport:
         return not self.errors
 
 
+class ValidatorError(RuntimeError):
+    """A validator could not check a chart, such as a Flint sidecar that did not answer."""
+
+
 class ChartValidator(Protocol):
     """Checks an assembled Flint input, such as :class:`FlintSidecar` does with Flint itself."""
 
     async def validate(self, flint_input: Mapping[str, object]) -> ValidationReport:
-        """Validate one Flint ``ChartAssemblyInput``."""
+        """
+        Validate one Flint ``ChartAssemblyInput``.
+
+        Raises:
+            ValidatorError: The check could not be made. :func:`show_chart` answers it as a
+                problem with the chart rather than raising it.
+        """
         ...
 
 
@@ -258,7 +268,9 @@ async def show_chart(
     Draw a stored result as a Flint chart, keeping its rows for the browser under a chart id.
 
     The chart is checked by :func:`check_grain` and then, when a ``validator`` is given, by
-    Flint itself, so the model hears about a bad chart in the same tool call.
+    Flint itself, so the model hears about a bad chart in the same tool call. A check that
+    could not be made (a :class:`ValidatorError`, such as a sidecar that timed out) is a
+    problem too, and the chart is not kept.
 
     Args:
         session: The conversation's session.
@@ -294,7 +306,12 @@ async def show_chart(
         return ChartReceipt(chart_id=None, problems=problems)
     warnings: tuple[str, ...] = ()
     if validator is not None:
-        report = await validator.validate(flint_input)
+        try:
+            report = await validator.validate(flint_input)
+        except ValidatorError as error:
+            # Raised out of a tool, it would end the agent's run; the model can try again.
+            problem = f"Flint could not check this chart ({error}); call show_chart again"
+            return ChartReceipt(chart_id=None, problems=(problem,))
         if not report.valid:
             return ChartReceipt(chart_id=None, problems=report.errors)
         warnings = report.warnings
