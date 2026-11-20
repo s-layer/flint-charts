@@ -1,6 +1,6 @@
 [project]
 name = "s-layer-flint-charts"
-version = "0.2.0"
+version = "0.3.0"
 description = "Semantic-layer-aware Flint charts for agents: types, grain guard and show_chart tool"
 readme = "README.md"
 authors = [
@@ -11,7 +11,7 @@ dependencies = [
     "orjson>=3.10",
     "pyarrow>=18",
     "s-layer-semantic-formats>=0.2.0,<0.3",
-    "semolina>=0.9.1",
+    "semolina>=0.10.0",
 ]
 
 [project.optional-dependencies]

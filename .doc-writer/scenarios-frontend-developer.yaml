@@ -1,0 +1,51 @@
+version: 1
+user_personas:
+  - name: "Frontend developer"
+    skill_level: "advanced"
+    generated_at: "2026-11-20"
+    doc_pages:
+      - "README.md"
+      - "ts/README.md"
+      - "docs/index.rst"
+      - "docs/agents.md"
+      - "docs/chat-ui.md"
+      - "docs/typescript.md"
+      - "docs/mapping.md"
+      - "docs/grain.md"
+      - "docs/changelog.md"
+    scenarios:
+      - id: S1
+        goal: "I want to install @s-layer/flint-charts and exactly the peers my chat framework needs, and upgrade an app on 0.2.0 that installed vega, vega-lite and vega-tooltip itself"
+        starting_point: "README.md"
+        persona_relevance: "The backend team just added chart_toolset; before any rendering code the frontend developer has to add the npm package and know which framework packages and versions it expects, and whether the vega packages the old version asked for can go."
+        done_when: "I know the one npm command, which peers are required or optional and at what versions (React, CopilotKit, assistant-ui), that Flint and its chart libraries come with the package (and at which Flint version), and what to remove or change when moving from 0.2.0."
+      - id: S2
+        goal: "I want every show_chart call in my CopilotKit chat drawn as a chart"
+        starting_point: "README.md"
+        persona_relevance: "The chat currently shows raw show_chart tool calls; CopilotKit is one of the two frameworks the persona uses."
+        done_when: "I have a working CopilotKitProvider setup (or hook) that registers the show_chart renderer, and know how to target another tool name or agent."
+      - id: S3
+        goal: "I want every show_chart call in my assistant-ui chat drawn as a chart"
+        starting_point: "README.md"
+        persona_relevance: "assistant-ui is the other supported chat framework; the toolkit/config wiring is specific to its 0.15 API."
+        done_when: "I have a toolkit entry for show_chart registered on AssistantRuntimeProvider's config, and know what happens to cancelled or refused calls."
+      - id: S4
+        goal: "I want to draw a chart from a show_chart tool result in a plain React app (no chat framework adapter)"
+        starting_point: "README.md"
+        persona_relevance: "Some apps use a homegrown chat or another framework; the persona needs the lower-level component and the shape of the result."
+        done_when: "I can turn the tool result (JSON text or object) into a receipt, draw it with SLayerChart or ShowChartToolCall, and know what a refused result gives me."
+      - id: S5
+        goal: "I want the rows request to carry my session cookie or an Authorization header, including when the Python app is on another origin"
+        starting_point: "README.md"
+        persona_relevance: "The rows live behind data.url on the server and are scoped to the conversation; without the right credentials every chart shows 'expired'."
+        done_when: "I know the default credentials behaviour, how to pass requestInit or fetch on each adapter and on SLayerChart, and what the server and CORS setup must allow for a cross-origin rows route."
+      - id: S6
+        goal: "I want to restyle or replace the loading box and the error note so they match my design system"
+        starting_point: "README.md"
+        persona_relevance: "The default skeleton and note are deliberately plain; a production chat needs them in the app's own look, ideally still showing the chart's title while it loads."
+        done_when: "I can pass my own loading and error components on every adapter and SLayerChart, reuse the default error text, and know whether and how my custom loading box can show the chart's title and size."
+      - id: S7
+        goal: "I want to know exactly what a reader sees when a chart can't be drawn, so I can explain it to support and product"
+        starting_point: "README.md"
+        persona_relevance: "Charts expire and can be refused; the persona has to predict every reader-facing outcome and its wording."
+        done_when: "I have the list of failure cases with the exact reader-facing text (matching describeError), when each happens (404 expiry rules, fetch failure, Flint check, Flint mount failure), and the cases where nothing is shown."

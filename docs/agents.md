@@ -18,9 +18,10 @@ pip install 's-layer-flint-charts[pydantic-ai,server]'
 
 ## The toolset
 
-`chart_toolset` gives a Pydantic AI agent one `query_<view>` tool per semantic view and a
-`show_chart` tool. The tools keep results and charts in a `ChartStore`, one session per
-conversation, so tell the toolset which conversation a run belongs to:
+{py:func}`chart_toolset <s_layer_flint_charts.pydantic_ai.chart_toolset>` gives a Pydantic AI agent
+one `query_<view>` tool per semantic view and a `show_chart` tool. The tools keep results and charts
+in a {py:class}`ChartStore <s_layer_flint_charts.ChartStore>`, one session per conversation, so tell
+the toolset which conversation a run belongs to:
 
 ```python
 from dataclasses import dataclass
@@ -42,7 +43,7 @@ def conversation_id(ctx: RunContext[Conversation]) -> str:
 
 
 store = ChartStore()
-sidecar = FlintSidecar()  # start it once, with `async with`, when the app starts
+sidecar = FlintSidecar()  # started once by the app's lifespan, below
 agent = Agent(
     "anthropic:claude-sonnet-4-6",
     deps_type=Conversation,
@@ -52,9 +53,33 @@ agent = Agent(
 )
 ```
 
-Each query tool's description tells the model which view it queries and what the view holds:
-the model's `description=`, which semolina codegen writes from the warehouse's view comment, or
-its class docstring when it has no `description=`.
+The toolset needs semolina 0.10.0 or later. Each query tool runs its query with semolina's
+`query.aexecute()`, so it needs an async engine registered under `"default"`, the name a query
+looks up when it names no other. A sync engine isn't enough: semolina looks async engines up in
+a registry of their own. `create_async_engine(..., register=True)` creates and registers one in
+one call (install `semolina[async]` for it), and the lifespan under
+[Checking charts with Flint](#checking-charts-with-flint) shows where it goes. To run queries
+some other way, pass `fetch=` to
+{py:func}`chart_toolset <s_layer_flint_charts.pydantic_ai.chart_toolset>`: an async function
+that takes the semolina `Query` and returns a pyarrow `Table`.
+
+Each query tool's description tells the model which view the tool queries and what the view
+holds. It comes from the view class's `description=`, which semolina codegen writes from the
+warehouse's view comment. A view with no `description=`, or a blank one, falls back to its class
+docstring. `description=` is a keyword of the class statement:
+
+```python
+from semolina import Dimension, Metric, SemanticView
+
+
+class Sales(
+    SemanticView,
+    view="analytics.sales",
+    description="Booked orders and revenue, by region and order date",
+):
+    revenue = Metric[float](label="Revenue")
+    region = Dimension[str](label="Region")
+```
 
 Each query tool takes semolina's query spec: `metrics`, `dimensions` (with a grain such as
 `ordered_at__month`), `where`, `order_by` and `limit`. Its schema lists the view's own field
@@ -86,11 +111,16 @@ The tool result costs the model a few hundred tokens per chart, whatever the row
 
 ## The rows route
 
-Mount the route the `data.url` points at. `session_of` tells it which conversation a request
-belongs to, so one conversation never reads another's charts:
+Mount the route the `data.url` points at with
+{py:func}`chart_routes <s_layer_flint_charts.server.chart_routes>`. `session_of` tells it which
+conversation a request belongs to, so one conversation never reads another's charts:
 
 ```python
+import os
+
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.sessions import SessionMiddleware
 from starlette.routing import Mount
 from s_layer_flint_charts.server import chart_routes
 
@@ -99,14 +129,29 @@ def session_of(request) -> str | None:
     return request.session.get("conversation_id")  # however your app knows it
 
 
-app = Starlette(routes=[Mount("/flint", routes=chart_routes(store, session_of))])
+app = Starlette(
+    routes=[Mount("/flint", routes=chart_routes(store, session_of))],
+    middleware=[Middleware(SessionMiddleware, secret_key=os.environ["SESSION_SECRET"])],
+)
 ```
 
 `GET /flint/charts/{chart_id}/rows` answers with the rows as a JSON array, compressed with zstd
-or gzip as the browser accepts, and 404 for an unknown, expired or foreign chart. If you mount
-the routes elsewhere, pass the same prefix as `url_prefix=` to `chart_toolset`.
+or gzip as the browser accepts, and 404 for an unknown, expired or foreign chart.
 
-The rows are kept per chart rather than per result, because a chart may draw different rows from
+`session_of(request)` must return the same id that your `session_id` function gave the agent
+run for that conversation. The run stored its charts in that session, so the route answers 404
+for any other id, or for `None`. `session_of` may also be async.
+
+The example reads `request.session`, which needs Starlette's `SessionMiddleware` on the app (it
+signs the cookie, and needs the `itsdangerous` package). Your app still has to write
+`conversation_id` into the session when a conversation starts, as the same id its agent runs use.
+
+`data.url` is `url_prefix` followed by `/charts/{chart_id}/rows`, and `url_prefix` defaults to
+`/flint`. If you mount the routes elsewhere, pass the full path from the origin as `url_prefix=`
+to {py:func}`chart_toolset <s_layer_flint_charts.pydantic_ai.chart_toolset>`, including any outer
+mount. For routes at `/flint` in an app you mount at `/api`, pass `url_prefix="/api/flint"`.
+
+The rows are kept per chart, not per result, because a chart may draw different rows from
 its result: the grain guard can add zeros to a stacked area.
 
 ## Drawing the chart
@@ -117,16 +162,67 @@ for CopilotKit, assistant-ui and plain React; see [Charts in a chat UI](chat-ui.
 
 ## Checking charts with Flint
 
-`FlintSidecar` runs a small Node script that ships with this package and calls Flint's own
-`validateChart` on every chart, as the Vega-Lite backend would draw it, with the `flint-chart`
-release this package is pinned to. The two talk in JSON lines over stdin and stdout. Flint errors
-stop the chart, and so does its `implicit-aggregate` warning, which means Flint would merge rows.
-Other warnings are passed on to the model.
+{py:class}`FlintSidecar <s_layer_flint_charts.FlintSidecar>` runs a small Node script that ships
+with this package and calls Flint's own `validateChart` on every chart, as the Vega-Lite backend
+would draw it, with the `flint-chart` release this package is pinned to. The two talk in JSON lines
+over stdin and stdout. Flint errors stop the chart, and so does its `implicit-aggregate` warning,
+which means Flint would merge rows. Other warnings are passed on to the model.
 
-By default the sidecar starts with `npx`, which downloads the pinned `flint-chart` the first
-time, so Node must be installed. To use a `flint-chart` you install yourself (an image built
-without network access, say), run the script with `node` and point `FLINT_CHART_DIR` at the
-package:
+The sidecar needs Node 18 or later where the Python app runs. The package is pinned to
+`flint-chart` 1.1.0, the value of
+{py:data}`FLINT_VERSION <s_layer_flint_charts.FLINT_VERSION>`. By default the sidecar starts
+with `npx`, which downloads that release the first time.
+
+Start the sidecar once, when the app starts, and share it. It's an async context manager:
+entering it starts Node, and leaving it shuts Node down. A Starlette lifespan does both, and is also
+the place to register the async engine the query tools run on:
+
+```python
+from contextlib import asynccontextmanager
+
+from semolina import create_async_engine
+from starlette.applications import Starlette
+
+# with the imports, store, sidecar and session_of from the examples above
+
+
+@asynccontextmanager
+async def lifespan(app: Starlette):
+    # the engine reads [connections.default] from .semolina.toml
+    async with create_async_engine("default", register=True), sidecar:
+        yield
+
+
+app = Starlette(
+    routes=[Mount("/flint", routes=chart_routes(store, session_of))],
+    middleware=[Middleware(SessionMiddleware, secret_key=os.environ["SESSION_SECRET"])],
+    lifespan=lifespan,
+)
+```
+
+Two options set how long the sidecar waits. `timeout` is the seconds one check may take (10 by
+default). `start_timeout` is the seconds Node may take to start (120 by default), which includes
+`npx` downloading `flint-chart` the first time:
+
+```python
+sidecar = FlintSidecar(timeout=5.0, start_timeout=300.0)
+```
+
+A check that times out, or finds that Node has exited, stops the sidecar. `show_chart` then
+answers the model with the problem ("Flint could not check this chart (...); call show_chart
+again") and keeps no chart, so the agent's run goes on. The next check starts the sidecar again,
+as long as the lifespan's `async with` is still open. A check that would fail the same way on
+every call, such as a chart input with no JSON form, gets the problem without the "call
+show_chart again".
+
+To use a `flint-chart` that you install yourself (an image built without network access, say),
+install the pinned release:
+
+```bash
+npm install flint-chart@1.1.0
+```
+
+Then run the script with `node` and point `FLINT_CHART_DIR` at the package:
 
 ```python
 from s_layer_flint_charts import FLINT_VERSION, VALIDATOR_SCRIPT, FlintSidecar
@@ -135,7 +231,9 @@ from s_layer_flint_charts import FLINT_VERSION, VALIDATOR_SCRIPT, FlintSidecar
 sidecar = FlintSidecar(("node", str(VALIDATOR_SCRIPT), FLINT_VERSION))
 ```
 
-The script refuses to start with any other `flint-chart` version. Without a validator, charts are
+The script checks the `flint-chart` it finds against the version in its last argument and
+refuses to start on a mismatch. Without `FLINT_CHART_DIR`, it also finds a `flint-chart`
+installed in `node_modules` under the working directory. Without a validator, charts are
 checked by the grain guard alone.
 
 ## Limits

@@ -12,8 +12,9 @@ with Flint and draws it with Flint's `<FlintChart>`.
 npm install @s-layer/flint-charts
 ```
 
-Flint brings the chart libraries it draws with. The React entry points need React 18 or later;
-see [Charts in a chat UI](https://s-layer.github.io/flint-charts/chat-ui.html).
+The package installs Flint, which brings the chart libraries it draws with. The React entry points
+need React 18 or later ([Charts in a chat UI](https://s-layer.github.io/flint-charts/chat-ui.html)
+has the setup).
 
 ## CopilotKit
 
@@ -58,7 +59,7 @@ export function ChartResult({ toolResult }: { toolResult: unknown }) {
 
 The rows URL must reach the Python app's rows route with the conversation's session. See
 [Charts in a chat UI](https://s-layer.github.io/flint-charts/chat-ui.html) for the options
-and what a reader sees when a chart can't be drawn.
+and for charts that can't be drawn.
 
 ## License
 

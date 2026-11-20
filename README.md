@@ -9,10 +9,21 @@ This repository holds two packages:
   `show_chart` tool.
 - `@s-layer/flint-charts` (TypeScript, `ts/`): renders those charts in agent chat UIs.
 
+Read the documentation at <https://s-layer.github.io/flint-charts/>, and the npm package's
+[README](ts/README.md).
+
 ## Installation
+
+The Python package:
 
 ```bash
 pip install s-layer-flint-charts
+```
+
+The npm package, which installs Flint for you:
+
+```bash
+npm install @s-layer/flint-charts
 ```
 
 ## Development
