@@ -189,3 +189,92 @@ def test_tool_names_are_provider_safe_and_distinct() -> None:
     assert {"query_sales_orders", "query_finance_orders"} <= set(names)
     assert all(re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", name) for name in names)
     assert len(set(names)) == 4
+
+
+ANSWERS = (
+    " Answers with a summary of the result (its columns, their ranges and a few rows) and a"
+    " result_id to pass to show_chart. Ask for the grain the chart needs."
+)
+"""The fixed end of every query tool's description."""
+
+
+def tool_descriptions(*views: type[SemanticView]) -> dict[str, str]:
+    """What the model is told about each tool, keyed by tool name."""
+    seen: dict[str, str] = {}
+
+    def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        seen.update({tool.name: tool.description or "" for tool in info.function_tools})
+        return ModelResponse(parts=[TextPart("done")])
+
+    tools = chart_toolset(list(views), store=ChartStore(), session_id=conversation_id)
+    Agent(FunctionModel(respond), deps_type=Conversation, toolsets=[tools]).run_sync(
+        "hi", deps=Conversation("a")
+    )
+    return seen
+
+
+def test_a_query_tool_tells_the_model_the_views_description() -> None:
+    """
+    The view's ``description=`` reaches the model, as semolina codegen writes it.
+
+    semolina codegen records the warehouse's view COMMENT as ``description=``, never as a
+    docstring, so a tool that read only ``__doc__`` told the model nothing about a generated view.
+    """
+
+    class Orders(SemanticView, view="sales.orders", description="One row per order line."):
+        revenue = Metric[float]()
+
+    assert tool_descriptions(Orders)["query_orders"] == (
+        "Query the sales.orders semantic view. One row per order line." + ANSWERS
+    )
+
+
+def test_a_docstring_still_describes_a_view_without_a_description() -> None:
+    class Orders(SemanticView, view="sales.orders"):
+        """Orders placed in the web shop."""
+
+        revenue = Metric[float]()
+
+    assert tool_descriptions(Orders)["query_orders"] == (
+        "Query the sales.orders semantic view. Orders placed in the web shop." + ANSWERS
+    )
+
+
+def test_description_wins_over_a_docstring() -> None:
+    """
+    A view with both is described once, by ``description=``.
+
+    The docstring of a hand-written model is often a note for its developers rather than for
+    the model, and ``description=`` is the one semolina and the warehouse agree on.
+    """
+
+    class Orders(SemanticView, view="sales.orders", description="One row per order line."):
+        """Internal: rebuilt nightly from the orders mart."""
+
+        revenue = Metric[float]()
+
+    assert tool_descriptions(Orders)["query_orders"] == (
+        "Query the sales.orders semantic view. One row per order line." + ANSWERS
+    )
+
+
+def test_a_blank_description_falls_back_to_the_docstring() -> None:
+    """A whitespace-only ``description=``, as a blank warehouse COMMENT gives, counts as none."""
+
+    class Orders(SemanticView, view="sales.orders", description=" \n"):
+        """Orders placed in the web shop."""
+
+        revenue = Metric[float]()
+
+    assert tool_descriptions(Orders)["query_orders"] == (
+        "Query the sales.orders semantic view. Orders placed in the web shop." + ANSWERS
+    )
+
+
+def test_a_view_with_neither_gets_the_plain_description() -> None:
+    class Orders(SemanticView, view="sales.orders"):
+        revenue = Metric[float]()
+
+    assert tool_descriptions(Orders)["query_orders"] == (
+        "Query the sales.orders semantic view." + ANSWERS
+    )

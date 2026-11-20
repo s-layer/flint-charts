@@ -52,6 +52,10 @@ agent = Agent(
 )
 ```
 
+Each query tool's description tells the model which view it queries and what the view holds:
+the model's `description=`, which semolina codegen writes from the warehouse's view comment, or
+its class docstring when it has no `description=`.
+
 Each query tool takes semolina's query spec: `metrics`, `dimensions` (with a grain such as
 `ordered_at__month`), `where`, `order_by` and `limit`. Its schema lists the view's own field
 names. It answers with the row count, and for each column its kind (metric or dimension),

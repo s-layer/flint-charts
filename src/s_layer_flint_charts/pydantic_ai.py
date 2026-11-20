@@ -151,7 +151,10 @@ def _query_tool(
         except (SemolinaSpecError, UnsupportedColumnError, DuplicateColumnError) as error:
             raise ModelRetry(str(error)) from error
 
-    about = (view.__doc__ or "").strip()
+    # `description=` is what semolina codegen writes from the warehouse's view COMMENT; a
+    # hand-written model may describe its view in a docstring instead. A blank COMMENT gives a
+    # whitespace-only `description=`, which counts as none.
+    about = (view._description or "").strip() or (view.__doc__ or "").strip()
     description = (
         f"Query the {view._view_name} semantic view. "
         + (f"{about} " if about else "")
