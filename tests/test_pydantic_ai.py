@@ -191,6 +191,13 @@ def test_tool_names_are_provider_safe_and_distinct() -> None:
     assert len(set(names)) == 4
 
 
+ANSWERS = (
+    " Answers with a summary of the result (its columns, their ranges and a few rows) and a"
+    " result_id to pass to show_chart. Ask for the grain the chart needs."
+)
+"""The fixed end of every query tool's description."""
+
+
 def tool_descriptions(*views: type[SemanticView]) -> dict[str, str]:
     """What the model is told about each tool, keyed by tool name."""
     seen: dict[str, str] = {}
@@ -217,7 +224,9 @@ def test_a_query_tool_tells_the_model_the_views_description() -> None:
     class Orders(SemanticView, view="sales.orders", description="One row per order line."):
         revenue = Metric[float]()
 
-    assert "One row per order line." in tool_descriptions(Orders)["query_orders"]
+    assert tool_descriptions(Orders)["query_orders"] == (
+        "Query the sales.orders semantic view. One row per order line." + ANSWERS
+    )
 
 
 def test_a_docstring_still_describes_a_view_without_a_description() -> None:
@@ -226,7 +235,9 @@ def test_a_docstring_still_describes_a_view_without_a_description() -> None:
 
         revenue = Metric[float]()
 
-    assert "Orders placed in the web shop." in tool_descriptions(Orders)["query_orders"]
+    assert tool_descriptions(Orders)["query_orders"] == (
+        "Query the sales.orders semantic view. Orders placed in the web shop." + ANSWERS
+    )
 
 
 def test_description_wins_over_a_docstring() -> None:
@@ -242,15 +253,28 @@ def test_description_wins_over_a_docstring() -> None:
 
         revenue = Metric[float]()
 
-    description = tool_descriptions(Orders)["query_orders"]
-    assert "One row per order line." in description
-    assert "rebuilt nightly" not in description
+    assert tool_descriptions(Orders)["query_orders"] == (
+        "Query the sales.orders semantic view. One row per order line." + ANSWERS
+    )
+
+
+def test_a_blank_description_falls_back_to_the_docstring() -> None:
+    """A whitespace-only ``description=``, as a blank warehouse COMMENT gives, counts as none."""
+
+    class Orders(SemanticView, view="sales.orders", description=" \n"):
+        """Orders placed in the web shop."""
+
+        revenue = Metric[float]()
+
+    assert tool_descriptions(Orders)["query_orders"] == (
+        "Query the sales.orders semantic view. Orders placed in the web shop." + ANSWERS
+    )
 
 
 def test_a_view_with_neither_gets_the_plain_description() -> None:
     class Orders(SemanticView, view="sales.orders"):
         revenue = Metric[float]()
 
-    assert tool_descriptions(Orders)["query_orders"].startswith(
-        "Query the sales.orders semantic view. Answers with a summary"
+    assert tool_descriptions(Orders)["query_orders"] == (
+        "Query the sales.orders semantic view." + ANSWERS
     )
