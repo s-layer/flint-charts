@@ -40,6 +40,17 @@ A few rules sit behind the table:
   {py:class}`FieldType <s_layer_flint_charts.FieldType>` has `fallback=True`, so a check can flag
   the missing block.
 
+{py:func}`chart_toolset <s_layer_flint_charts.pydantic_ai.chart_toolset>` does this mapping for
+you. For each result column it calls {py:func}`map_field <s_layer_flint_charts.map_field>` with
+the semolina field's `semantic_format=` block, the column's Arrow type, the query's grain and the
+field's label. It passes neither
+`aggregation=` nor `additivity=`, so two of the rules above play out differently there:
+
+- An integer metric with no block maps to `Number`, not `Count`. Give count metrics a `count`
+  block.
+- A currency metric maps to `Amount` unless its block declares
+  `"aggregation": {"additivity": "non_additive"}`, which makes it a `Price`.
+
 Each `FieldType` also has a {py:attr}`value_form <s_layer_flint_charts.FieldType.value_form>`, which
 says how the column's values must be written into the chart's rows for that type: a year as an
 integer, a quarter as `"2024-Q1"`, a month as `"2024-01"`, a 0-100 percentage divided by 100.
@@ -84,6 +95,6 @@ field_display_names(fields)
 # {"revenue": "Revenue"}
 ```
 
-The mapping is written against flint-chart
+The mapping is written against flint-chart 1.1.0, the value of
 {py:data}`FLINT_VERSION <s_layer_flint_charts.FLINT_VERSION>`. The TypeScript package's tests check
 every type it can emit against that release's own registry.

@@ -5,7 +5,7 @@ Everything `@s-layer/flint-charts` exports, by entry point. For a walk-through, 
 
 | Entry point | Needs | Holds |
 |---|---|---|
-| `@s-layer/flint-charts` | nothing beyond `flint-chart` | reading results, fetching rows, checking charts |
+| `@s-layer/flint-charts` | nothing: the package installs `flint-chart` 1.1.0 itself | reading results, fetching rows, checking charts |
 | `@s-layer/flint-charts/react` | React 18+ | `<SLayerChart>`, `<ShowChartToolCall>`, `useChart` |
 | `@s-layer/flint-charts/copilotkit` | the above and `@copilotkit/react-core` 1.80+ | `showChartRenderer`, `useShowChartRenderer` |
 | `@s-layer/flint-charts/assistant-ui` | the above and `@assistant-ui/react` 0.15 | `showChartTool` |
@@ -84,9 +84,17 @@ Checks a loaded chart as Flint's Vega-Lite backend would draw it.
 stop a chart, and so does its `implicit-aggregate` warning, which means Flint would merge
 rows into one mark.
 
-Drawing the result without React, with Flint's Vega-Lite assembler and `vega-embed` (install
-`flint-chart`, at the release this package pins, and `vega-embed` as your own dependencies to
-import them):
+Drawing the result without React, with Flint's Vega-Lite assembler and `vega-embed`, means
+importing both yourself, so list them as your own dependencies. Install `flint-chart` at the
+release this package pins, 1.1.0, so you share its copy. `vega-embed` declares `vega` and
+`vega-lite` as peer dependencies, so add those too unless your package manager installs peers
+for you:
+
+```bash
+npm install flint-chart@1.1.0 vega-embed vega vega-lite
+```
+
+Then:
 
 ```ts
 import { checkChart, loadChart } from "@s-layer/flint-charts";
@@ -164,7 +172,7 @@ Draws one Flint input: fetches its rows, checks it, then draws it with Flint's
 | `chart` | `ChartAssemblyInput` | The Flint input, rows by URL or inline. |
 | `fetch` | `typeof fetch` | Fetches the rows. Default: the global `fetch`. |
 | `requestInit` | `RequestInit` | Options for the rows request. Default: cookies to the same origin only. |
-| `loading` | `ReactNode` | Shown while the rows load and Flint mounts. Default: [`<ChartSkeleton>`](#chartskeleton) with the chart's title. |
+| `loading` | `ReactNode` | Shown while the rows load and Flint mounts. Default: [`<ChartSkeleton>`](#chartskeleton) with the chart's title, sized to `width` and `height`. A replacement is one fixed node, so through an adapter every chart shows the same one, without its title or size. |
 | `renderError` | `(error: Error) => ReactNode` | Shown in place of a chart whose rows could not be loaded or that failed the check. Default: [`<ChartErrorNote>`](#charterrornote). |
 
 It also takes every `<FlintChart>` prop except `spec` and `fallback`, such as `width`,

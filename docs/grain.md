@@ -51,6 +51,18 @@ chart is safe to draw when there are none.
 | No two rows share every placed value | monthly rows drawn on a quarter axis | 3 rows share one quarter and region mark; the result is finer than the chart, so query at the grain the chart shows |
 | A stacked chart only stacks what adds up across its color | margin (a ratio) as bars stacked by region | a Bar Chart sums margin across region, but it does not add up; use a Line Chart or a Grouped Bar Chart, or take color off |
 | | an account balance stacked by snapshot day | it cannot be summed over day |
+| | revenue stacked by region, when revenue's block declares no additivity | a Bar Chart sums revenue across region, but its additivity is not declared, so its sum may be wrong; use a Line Chart or a Grouped Bar Chart, or take color off |
+
+These refusals come earlier, from
+{py:func}`show_chart <s_layer_flint_charts.show_chart>` (the function the toolset's `show_chart`
+tool calls), before the grain guard runs:
+
+| Refused | What the model is told |
+| --- | --- |
+| a chart type outside {py:data}`CHART_TYPES <s_layer_flint_charts.CHART_TYPES>`, such as `Funnel` | 'Funnel' is not a chart type here; use one of Area Chart, Bar Chart, … |
+| no encodings | put at least one column on a channel, such as x or y |
+| a result cut at the row cap | the result has more than 5000 rows and was cut, so a chart of it would be wrong; filter it or use a coarser grain |
+| a `result_id` the conversation no longer holds: expired, pushed out by newer results, or never its own | there is no result 'r_…'; run the query again |
 
 Scatter plots, distribution charts (box, violin, strip, histogram, density) and tables draw
 every row as its own mark or summarise many rows on purpose, so they skip the two
@@ -58,14 +70,47 @@ one-row-per-mark rules.
 
 Stacking charts are bars, stacked bars, areas and streamgraphs whenever more than one color shares a
 bar or point, and pie and donut charts always. Bars colored by the same column as their x axis do
-not stack. A metric whose additivity is unknown is not stacked, since its sum may be wrong. Setting
-`chartProperties.stackMode` to `"layered"` turns stacking off, except for streamgraphs, which always
-stack.
+not stack. A stacking chart of a metric whose additivity is not declared is refused, since its
+sum may be wrong. Setting `chartProperties.stackMode` to `"layered"` turns stacking off, except for
+streamgraphs, which always stack.
 
 A dimension that takes one value per mark, such as a region beside a country, is fine to leave
 off the chart. Tooltip and text channels label a mark without drawing a new one, so a dimension
 that is only in the tooltip still needs one value per mark. Only the measure is stacked (`x` or
-`y`, or `size` for a pie), so a ratio in a tooltip does not stop revenue stacking.
+`y`, or `size` or `theta` for a pie), so a ratio in a tooltip does not stop revenue stacking.
+
+### Where additivity comes from
+
+`check_grain` takes each metric's additivity from the `Metric` you pass it. Under
+{py:func}`chart_toolset <s_layer_flint_charts.pydantic_ai.chart_toolset>`, the toolset makes each
+`Metric` from the field's `s_layer` block (semolina's `semantic_format=`) and nothing else:
+
+- If the block declares `aggregation.additivity`, that is the metric's additivity.
+- If not, a `percentage` or `score` value is non-additive.
+- Any other metric has none.
+
+So a currency, count or number metric whose block doesn't declare additivity, and any metric
+with no block at all, can't be stacked by color: the chart is refused with "its additivity is
+not declared". Declare `additive` on each metric you want stacked:
+
+```python
+from semolina import Dimension, Metric, SemanticView
+
+
+class Sales(SemanticView, view="analytics.sales"):
+    revenue = Metric[float](
+        label="Revenue",
+        semantic_format={
+            "value": {"kind": "currency", "currency": "USD"},
+            "aggregation": {"additivity": "additive"},
+        },
+    )
+    region = Dimension[str](label="Region", semantic_format={"value": {"kind": "category"}})
+```
+
+Declare a snapshot metric, such as an account balance, `semi_additive`, and name its snapshot
+dimensions in `aggregation.by`, such as `"by": ["snapshot_date"]`. It then stacks across any
+other dimension.
 
 ## Stacked areas with gaps
 

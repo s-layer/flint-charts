@@ -47,4 +47,5 @@ tools, and :doc:`chat-ui` to draw those charts in a chat.
    mapping
    grain
    API Reference <autoapi/index>
+   Upgrading from 0.2.0 <upgrading>
    Release notes <changelog>
