@@ -164,22 +164,49 @@ async def test_answers_that_are_not_a_report(answer: str, match: str) -> None:
             await sidecar.validate({})
 
 
+def fails_first_check(marker: Path, failure: str) -> tuple[str, ...]:
+    """A fake whose first process fails its first check, and whose later ones answer."""
+    return fake(
+        HELLO
+        + f"import pathlib, time\nfirst = not pathlib.Path({str(marker)!r}).exists()\n"
+        + f"pathlib.Path({str(marker)!r}).touch()\n"
+        + "for line in sys.stdin:\n"
+        + "    r = json.loads(line)\n"
+        + f"    if first:\n        {failure}\n"
+        + "    print(json.dumps({'id': r['id'], 'result': {'valid': True}}), flush=True)\n"
+    )
+
+
+@pytest.mark.parametrize(
+    ("failure", "match"),
+    [("time.sleep(30)", "timed out"), ("sys.exit(2)", r"exited \(status 2\)")],
+    ids=["hangs", "exits"],
+)
 @pytest.mark.anyio
-async def test_a_sidecar_that_hangs_times_out_and_stays_gone() -> None:
-    script = HELLO + "import time\nfor line in sys.stdin:\n    time.sleep(30)\n"
-    async with FlintSidecar(fake(script), timeout=0.2) as sidecar:
-        with pytest.raises(SidecarError, match="timed out"):
+async def test_a_sidecar_that_fails_a_check_is_started_again_for_the_next(
+    tmp_path: Path, failure: str, match: str
+) -> None:
+    """
+    One hung or crashed check costs that check, not every chart after it.
+
+    The failed process is stopped, and the next check inside the same ``async with`` starts a
+    fresh one, so an app need not restart to chart again.
+    """
+    command = fails_first_check(tmp_path / "failed-once", failure)
+    async with FlintSidecar(command, timeout=0.5) as sidecar:
+        with pytest.raises(SidecarError, match=match):
             await sidecar.validate({})
-        with pytest.raises(SidecarError, match="not started"):
-            await sidecar.validate({})
+        assert await sidecar.validate({}) == ValidationReport()
+        assert sidecar.version == "9.9.9"
 
 
 @pytest.mark.anyio
-async def test_a_sidecar_that_exits_mid_answer() -> None:
-    script = HELLO + "sys.stdin.readline()\nsys.exit(2)\n"
-    async with FlintSidecar(fake(script)) as sidecar:
-        with pytest.raises(SidecarError, match="exited"):
-            await sidecar.validate({})
+async def test_a_sidecar_is_not_started_again_after_its_block() -> None:
+    sidecar = FlintSidecar(fake(ECHO_RESULT))
+    async with sidecar:
+        await sidecar.validate({"result": {"valid": True}})
+    with pytest.raises(SidecarError, match="not started"):
+        await sidecar.validate({"result": {"valid": True}})
 
 
 ECHO_DATA = (

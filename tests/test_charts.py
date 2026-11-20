@@ -11,6 +11,7 @@ from semolina.spec import build_query
 from s_layer_flint_charts import (
     CHART_TYPES,
     ChartSession,
+    SidecarError,
     StoredResult,
     ValidationReport,
     assemble_chart,
@@ -239,6 +240,37 @@ async def test_a_chart_flint_rejects_is_not_kept() -> None:
         validator=FakeValidator(ValidationReport(errors=("no rows",))),
     )
     assert receipt.to_dict() == {"ok": False, "problems": ["no rows"]}
+
+
+class UnreachableValidator:
+    async def validate(self, flint_input: Mapping[str, object]) -> ValidationReport:
+        raise SidecarError("the Flint sidecar did not answer within 10s: timed out")
+
+
+async def test_a_chart_flint_could_not_check_is_refused_with_the_reason() -> None:
+    """
+    A check that fails is a problem the model hears about, not an error that ends its run.
+
+    The chart is not kept: nothing vouched that Flint can draw it.
+    """
+    session = ChartSession()
+    result = stored()
+    session.add_result(result)
+    receipt = await show_chart(
+        session,
+        result_id=result.result_id,
+        chart_type="Line Chart",
+        encodings=LINES,
+        title="Revenue",
+        validator=UnreachableValidator(),
+    )
+    assert receipt.to_dict() == {
+        "ok": False,
+        "problems": [
+            "Flint could not check this chart (the Flint sidecar did not answer within 10s: "
+            "timed out); call show_chart again"
+        ],
+    }
 
 
 async def test_an_unknown_result_asks_for_the_query_again() -> None:
