@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Self, cast
 
 import orjson
 
-from s_layer_flint_charts._charts import ValidationReport
+from s_layer_flint_charts._charts import ValidationReport, ValidatorError
 from s_layer_flint_charts._mapping import FLINT_VERSION
 
 if TYPE_CHECKING:
@@ -55,7 +55,7 @@ _LINE_LIMIT = 16 * 1024 * 1024
 """The longest line read from the sidecar: a report is small, but its messages are unbounded."""
 
 
-class SidecarError(RuntimeError):
+class SidecarError(ValidatorError):
     """The sidecar could not start or be reached, or answered with something other than a report."""
 
 
@@ -97,7 +97,9 @@ class FlintSidecar:
     A Node process running Flint's ``validateChart``, the ``validator`` of :func:`show_chart`.
 
     Start one per process and share it: it is an async context manager that spawns the sidecar
-    on entry and stops it on exit. Checks are sent one at a time.
+    on entry and stops it on exit. Checks are sent one at a time. A check that times out or
+    finds the sidecar gone stops it and raises :class:`SidecarError`, which :func:`show_chart`
+    answers as a problem; the next check starts the sidecar again.
 
     Example:
         .. code-block:: python
@@ -128,10 +130,28 @@ class FlintSidecar:
         self._process: asyncio.subprocess.Process | None = None
         self._lock = asyncio.Lock()
         self._ids = itertools.count(1)
+        self._entered = False
         self.version: str | None = None
         """The flint-chart version the running sidecar loaded."""
 
     async def __aenter__(self) -> Self:
+        await self._start()
+        self._entered = True
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        # Under the lock, so a check that is starting the sidecar again finishes first and
+        # its process is stopped here rather than left running after the block.
+        async with self._lock:
+            self._entered = False
+            await self._stop()
+
+    async def _start(self) -> None:
         try:
             process = await asyncio.create_subprocess_exec(
                 *self._command,
@@ -155,26 +175,22 @@ class FlintSidecar:
             raise
         version = hello.get("version")
         self.version = version if isinstance(version, str) else None
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        await self._stop()
 
     async def validate(self, flint_input: Mapping[str, object]) -> ValidationReport:
         """
         Ask Flint whether it can draw ``flint_input``, as the Vega-Lite backend would.
 
+        A sidecar that timed out or exited on an earlier check is stopped, and this check
+        starts a fresh one, as long as it runs inside the ``async with`` block.
+
         Raises:
-            SidecarError: The sidecar is not started, did not answer in time or at all (one
-                that has timed out or exited is stopped and stays gone), or did not answer
-                with a report.
+            SidecarError: The sidecar is not started (outside its ``async with`` block), could
+                not start again, did not answer in time or at all, or did not answer with a
+                report.
         """
         async with self._lock:
+            if self._process is None and self._entered:
+                await self._start()
             process = self._process
             if process is None or process.stdin is None:
                 raise SidecarError(
@@ -190,12 +206,17 @@ class FlintSidecar:
                 process.stdin.write(line + b"\n")
                 await process.stdin.drain()
                 answer = await self._answer(request_id)
-            except SidecarError:
+            except SidecarError as error:
+                # The process is stopped and the next check starts a fresh one, so this one
+                # is worth calling again.
                 await self._stop()
+                error.retry = True
                 raise
             except OSError as error:  # the pipe closed under us
                 await self._stop()
-                raise SidecarError(f"the Flint sidecar did not answer: {error}") from error
+                raise SidecarError(
+                    f"the Flint sidecar did not answer: {error}", retry=True
+                ) from error
         if "error" in answer:
             raise SidecarError(f"validateChart failed: {answer['error']}")
         result = answer.get("result")

@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -64,16 +64,16 @@ wheels = [
 
 [[package]]
 name = "adbc-poolhouse"
-version = "1.7.0"
+version = "1.8.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "adbc-driver-manager" },
     { name = "pydantic-settings" },
     { name = "sqlalchemy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8a/8d/ae9075ba82735cf1d8456acae97d7007914b61e4b93fbde3252f911d403b/adbc_poolhouse-1.7.0.tar.gz", hash = "sha256:c39b25afd19f7fa6ab49f8036237342bab148471934b010bd094f84d6e1745d0", size = 69302, upload-time = "2026-10-19T15:12:47.233Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/af/b9/801689929a2c1eb4d450b83089b286ea42d6dc4c816102823f01a9c87424/adbc_poolhouse-1.8.1.tar.gz", hash = "sha256:c1f2a52a095032c0090061d2b12ab1217a7084d2f9a84ec9fbbb3d01a05c6f73", size = 72466, upload-time = "2026-11-20T16:53:02.836Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8b/d8/f6c81be76c1bda73e3fb7be27d144c9d36e682b804841e03c4965d989dd6/adbc_poolhouse-1.7.0-py3-none-any.whl", hash = "sha256:b6d427249fdc26233e5ad2d4ad21f63924abaf7885e3e9ecbe6249d9f180cd25", size = 87029, upload-time = "2026-10-19T15:12:45.757Z" },
+    { url = "https://files.pythonhosted.org/packages/c6/e6/a85f68639b2077bffad653228ed794c705de5b15f9a4b16bf5340c62d9ab/adbc_poolhouse-1.8.1-py3-none-any.whl", hash = "sha256:db2510ce29bc1570398e070d2b7e0dcfe38455589c3dc9c1f83db081fd2e32dd", size = 89911, upload-time = "2026-11-20T16:53:01.699Z" },
 ]
 
 [[package]]
@@ -1676,7 +1676,7 @@ wheels = [
 
 [[package]]
 name = "s-layer-flint-charts"
-version = "0.2.0"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "orjson" },
@@ -1724,7 +1724,7 @@ requires-dist = [
     { name = "pyarrow", specifier = ">=18" },
     { name = "pydantic-ai-slim", marker = "extra == 'pydantic-ai'", specifier = ">=2.0" },
     { name = "s-layer-semantic-formats", specifier = ">=0.2.0,<0.3" },
-    { name = "semolina", specifier = ">=0.9.1" },
+    { name = "semolina", specifier = ">=0.10.0" },
     { name = "starlette", marker = "extra == 'server'", specifier = ">=0.40" },
 ]
 provides-extras = ["server", "pydantic-ai"]
@@ -1764,15 +1764,15 @@ wheels = [
 
 [[package]]
 name = "semolina"
-version = "0.9.1"
+version = "0.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "adbc-poolhouse" },
     { name = "s-layer-semantic-formats" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/55/24/a49aa336fbd59e2c5112f38569e5856a06d98185613b6c1c4fd86f999194/semolina-0.9.1.tar.gz", hash = "sha256:c6bc36b0e19bd575385dcff47d83600e44e460aca31990a88e99a2010f5ed002", size = 245369, upload-time = "2026-10-27T09:16:17.496Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0c/92/501f4fe99d7e51c4b12009e7a154f51a4291ddc826667653b58e1005d770/semolina-0.10.0.tar.gz", hash = "sha256:feb2e8b0b4ddbb60806ca24109287f107fd653196c56ed3fcac5f5e0d8d8976f", size = 246762, upload-time = "2026-11-20T22:45:09.65Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3f/d6/b3cffb5ff4397418467218a7c9c6df14ddc739e3a2846b328a3d10173543/semolina-0.9.1-py3-none-any.whl", hash = "sha256:d034e4110319104fc88b5e66160dfa927c682848cb8cf1786d4f23caa4de6201", size = 269168, upload-time = "2026-10-27T09:16:15.672Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/7d/d190106dd6420a64f769e9c8a42c2735d15057eb163c75fe64a125787c65/semolina-0.10.0-py3-none-any.whl", hash = "sha256:5f37f294ba14964fb9dd9b6fa005d1aaeeb9eb3b9eb8dd9d6092b9db18860dd4", size = 270429, upload-time = "2026-11-20T22:45:08.347Z" },
 ]
 
 [[package]]

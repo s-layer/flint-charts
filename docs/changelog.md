@@ -10,6 +10,8 @@ myst:
 
 The canonical changelog lives in [`CHANGELOG.md`](https://github.com/s-layer/flint-charts/blob/main/CHANGELOG.md) at the repository root and is mirrored here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+Moving from 0.2.0? Read [Upgrading from 0.2.0](upgrading.md) for what to change in your app.
+
 ```{include} ../CHANGELOG.md
 :parser: myst_parser.sphinx_
 :start-after: <!-- docs-include-start -->

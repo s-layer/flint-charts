@@ -10,6 +10,12 @@ source_terms:
   - canonical: "chart_toolset"
     variants: []
     source: "src/s_layer_flint_charts/pydantic_ai.py"
+  - canonical: "FlintSidecar"
+    variants: []
+    source: "class FlintSidecar in src/s_layer_flint_charts/_sidecar.py"
+  - canonical: "ChartStore"
+    variants: []
+    source: "class ChartStore in src/s_layer_flint_charts/_store.py"
 
 proper_nouns:
   - canonical: "Flint"
@@ -32,5 +38,13 @@ project_terms:
     variants: ["chart spec", "Flint spec"]
   - canonical: "grain guard"
     variants: ["grain check"]
+  - canonical: "query tool"
+    variants: []
+  - canonical: "value form"
+    variants: []
+  - canonical: "show_chart result"
+    variants: []
+  - canonical: "rows request"
+    variants: []
 
 overrides: {}
